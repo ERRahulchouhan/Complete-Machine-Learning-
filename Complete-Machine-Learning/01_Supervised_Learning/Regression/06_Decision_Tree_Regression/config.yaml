@@ -1,0 +1,11 @@
+algorithm: "Decision Tree Regression"
+target: value
+random_state: 42
+n_samples: 600
+test_size: 0.2
+scale_numeric: false
+estimator:
+  module: sklearn.tree
+  class: DecisionTreeRegressor
+  parameters:
+    max_depth: 5

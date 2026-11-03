@@ -1,0 +1,579 @@
+# Master Prompt: Complete Machine Learning Algorithms – Beginner to Production Level
+
+Act as a Senior Machine Learning Engineer, ML Architect, Data Scientist, and MLOps Engineer with 10+ years of production experience.
+
+Build a complete, industry-standard Machine Learning learning repository using Python, NumPy, Pandas, Scikit-learn, XGBoost, LightGBM, CatBoost, and other relevant ML libraries.
+
+The goal is to learn every major ML algorithm from beginner to advanced level and understand how to implement, evaluate, optimize, deploy, monitor, and maintain each algorithm in real-world production systems.
+
+## 1. Repository structure
+
+Create a separate folder for every individual ML algorithm.
+
+Use the following structure:
+
+```text
+Complete-Machine-Learning/
+│
+├── README.md
+├── requirements.txt
+├── environment.yml
+├── .gitignore
+├── pyproject.toml
+│
+├── 00_ML_Fundamentals/
+│   ├── ML_Fundamentals.ipynb
+│   ├── Statistics.ipynb
+│   ├── Probability.ipynb
+│   ├── Linear_Algebra.ipynb
+│   ├── Bias_Variance_Tradeoff.ipynb
+│   ├── Overfitting_Underfitting.ipynb
+│   └── Feature_Engineering.ipynb
+│
+├── 01_Supervised_Learning/
+│   ├── Regression/
+│   │   ├── 01_Linear_Regression/
+│   │   ├── 02_Polynomial_Regression/
+│   │   ├── 03_Ridge_Regression/
+│   │   ├── 04_Lasso_Regression/
+│   │   ├── 05_ElasticNet_Regression/
+│   │   ├── 06_Decision_Tree_Regression/
+│   │   ├── 07_Random_Forest_Regression/
+│   │   ├── 08_Extra_Trees_Regression/
+│   │   ├── 09_Gradient_Boosting_Regression/
+│   │   ├── 10_XGBoost_Regression/
+│   │   ├── 11_LightGBM_Regression/
+│   │   ├── 12_CatBoost_Regression/
+│   │   ├── 13_SVR/
+│   │   ├── 14_KNN_Regression/
+│   │   └── 15_HistGradientBoosting_Regression/
+│   │
+│   └── Classification/
+│       ├── 01_Logistic_Regression/
+│       ├── 02_KNN_Classifier/
+│       ├── 03_Decision_Tree_Classifier/
+│       ├── 04_Random_Forest_Classifier/
+│       ├── 05_Extra_Trees_Classifier/
+│       ├── 06_SVM_Classifier/
+│       ├── 07_Naive_Bayes_Gaussian/
+│       ├── 08_Naive_Bayes_Multinomial/
+│       ├── 09_Naive_Bayes_Bernoulli/
+│       ├── 10_LDA/
+│       ├── 11_QDA/
+│       ├── 12_Gradient_Boosting/
+│       ├── 13_XGBoost_Classifier/
+│       ├── 14_LightGBM_Classifier/
+│       ├── 15_CatBoost_Classifier/
+│       └── 16_MLP_Classifier/
+│
+├── 02_Unsupervised_Learning/
+│   ├── Clustering/
+│   │   ├── KMeans/
+│   │   ├── MiniBatch_KMeans/
+│   │   ├── DBSCAN/
+│   │   ├── HDBSCAN/
+│   │   ├── Hierarchical_Clustering/
+│   │   ├── Gaussian_Mixture_Model/
+│   │   ├── BIRCH/
+│   │   └── Mean_Shift/
+│   │
+│   └── Dimensionality_Reduction/
+│       ├── PCA/
+│       ├── Kernel_PCA/
+│       ├── Truncated_SVD/
+│       ├── ICA/
+│       ├── tSNE/
+│       ├── UMAP/
+│       └── Factor_Analysis/
+│
+├── 03_Ensemble_Learning/
+│   ├── Bagging/
+│   ├── Boosting/
+│   ├── Stacking/
+│   ├── Voting_Classifier/
+│   ├── Voting_Regressor/
+│   ├── AdaBoost/
+│   ├── Gradient_Boosting/
+│   ├── Random_Forest/
+│   ├── Extra_Trees/
+│   └── Blending/
+│
+├── 04_Anomaly_Detection/
+│   ├── Isolation_Forest/
+│   ├── Local_Outlier_Factor/
+│   ├── One_Class_SVM/
+│   ├── Elliptic_Envelope/
+│   └── Autoencoders/
+│
+├── 05_Time_Series_ML/
+│   ├── ARIMA/
+│   ├── SARIMA/
+│   ├── SARIMAX/
+│   ├── Exponential_Smoothing/
+│   ├── Prophet/
+│   ├── XGBoost_Forecasting/
+│   ├── LightGBM_Forecasting/
+│   └── Time_Series_Feature_Engineering/
+│
+├── 06_Neural_Networks/
+│   ├── Perceptron/
+│   ├── MLP/
+│   ├── Backpropagation/
+│   ├── Activation_Functions/
+│   ├── Loss_Functions/
+│   ├── Optimizers/
+│   ├── Regularization/
+│   └── Batch_Normalization/
+│
+├── 07_Feature_Engineering/
+│   ├── Missing_Value_Handling/
+│   ├── Outlier_Treatment/
+│   ├── Encoding/
+│   ├── Scaling/
+│   ├── Feature_Selection/
+│   ├── Feature_Extraction/
+│   ├── Feature_Transformation/
+│   └── Feature_Importance/
+│
+├── 08_Model_Evaluation/
+│   ├── Regression_Metrics/
+│   ├── Classification_Metrics/
+│   ├── Clustering_Metrics/
+│   ├── Cross_Validation/
+│   ├── Hyperparameter_Tuning/
+│   ├── Threshold_Optimization/
+│   ├── Calibration/
+│   └── Statistical_Tests/
+│
+├── 09_Explainable_AI/
+│   ├── SHAP/
+│   ├── LIME/
+│   ├── Permutation_Importance/
+│   ├── Partial_Dependence/
+│   └── Fairness_and_Bias/
+│
+├── 10_MLOps_Production/
+│   ├── MLflow/
+│   ├── Model_Registry/
+│   ├── Model_Versioning/
+│   ├── Data_Drift/
+│   ├── Concept_Drift/
+│   ├── Model_Monitoring/
+│   ├── Model_Retraining/
+│   ├── FastAPI_Deployment/
+│   ├── Docker/
+│   ├── Kubernetes/
+│   ├── CI_CD/
+│   └── Batch_and_Real_Time_Inference/
+│
+├── 11_End_to_End_Projects/
+│   ├── Customer_Churn/
+│   ├── Credit_Risk/
+│   ├── Fraud_Detection/
+│   ├── House_Price_Prediction/
+│   ├── Customer_Segmentation/
+│   ├── Sales_Forecasting/
+│   └── Recommendation_System/
+│
+└── 12_Interview_Preparation/
+    ├── Beginner_Questions/
+    ├── Intermediate_Questions/
+    ├── Advanced_Questions/
+    ├── Scenario_Based_Questions/
+    └── Production_ML_Questions/
+```
+
+## 2. Mandatory notebook structure for EVERY algorithm
+
+Every individual algorithm folder must contain:
+
+```text
+Algorithm_Name/
+│
+├── Algorithm_Name.ipynb
+├── README.md
+├── requirements.txt
+├── config.yaml
+├── train.py
+├── predict.py
+├── evaluate.py
+├── preprocessing.py
+├── model.py
+├── test_model.py
+├── Dockerfile
+│
+├── data/
+│   ├── raw/
+│   ├── processed/
+│   └── external/
+│
+├── models/
+├── logs/
+├── reports/
+│
+└── artifacts/
+```
+
+Do not put all algorithms into one notebook.
+
+Each algorithm must have its own complete notebook with separate executable cells.
+
+## 3. Mandatory cell-wise notebook format
+
+Create notebooks with the following cells in the same sequence.
+
+**Cell 1: Algorithm introduction**
+- What is the algorithm?
+- Why do we need it?
+- When should we use it?
+- Real-world examples.
+- Business use cases.
+- Industry applications.
+
+**Cell 2: Mathematical intuition**
+- Mathematical formula.
+- Explanation of every variable.
+- Derivation where applicable.
+- Assumptions.
+- Objective function.
+- Cost/loss function.
+
+**Cell 3: Working mechanism**
+- Step-by-step algorithm execution.
+- Internal working.
+- Simple numerical example.
+- Manual calculation.
+- Visual explanation.
+
+**Cell 4: Algorithm from scratch**
+- Implement using pure Python and NumPy.
+- Do not use sklearn for the algorithm implementation.
+- Explain each line.
+- Add a manual dry run.
+- Explain time and space complexity.
+
+**Cell 5: Dataset**
+- Use an appropriate real-world or publicly available dataset.
+- Explain every feature.
+- Explain target variable.
+- Show dataset shape and sample records.
+- Explain data collection and business context.
+- Provide a synthetic fallback so the notebook runs offline.
+
+**Cell 6: Exploratory Data Analysis**
+- Shape and data types.
+- Missing values.
+- Duplicate records.
+- Statistical summary.
+- Distribution analysis.
+- Correlation.
+- Outlier detection.
+- Data visualization.
+- Target distribution.
+
+**Cell 7: Data preprocessing**
+- Missing value imputation.
+- Categorical encoding.
+- Feature scaling.
+- Outlier handling.
+- Feature transformation.
+- Train/validation/test split.
+- Prevent data leakage.
+- Use sklearn Pipeline and ColumnTransformer.
+
+**Cell 8: Baseline model**
+- Build the simplest baseline.
+- Train the model.
+- Make predictions.
+- Explain model parameters.
+- Understand model output.
+
+**Cell 9: Detailed training**
+- Fit model.
+- Explain internal training process.
+- Explain hyperparameters.
+- Show training results.
+- Compare training and testing performance.
+
+**Cell 10: Evaluation**
+Include relevant metrics for the algorithm.
+
+Regression:
+- MAE
+- MSE
+- RMSE
+- R2
+- Adjusted R2
+- MAPE and limitations
+- Residual analysis
+
+Classification:
+- Accuracy
+- Precision
+- Recall
+- F1-score
+- Confusion matrix
+- ROC-AUC
+- PR-AUC
+- Log loss
+- Specificity
+- Sensitivity
+- Balanced accuracy
+- Matthews correlation coefficient
+
+Clustering:
+- Silhouette score
+- Davies-Bouldin index
+- Calinski-Harabasz index
+- Cluster visualization
+- Business interpretation
+
+**Cell 11: Overfitting and underfitting**
+- Detect overfitting.
+- Detect underfitting.
+- Bias-variance tradeoff.
+- Learning curves.
+- Validation curves.
+- Regularization.
+- Practical solutions.
+
+**Cell 12: Hyperparameter optimization**
+- GridSearchCV.
+- RandomizedSearchCV.
+- Optuna.
+- Bayesian optimization.
+- Cross-validation.
+- Explain each important parameter.
+- Compare default vs optimized model.
+
+**Cell 13: Feature importance and explainability**
+- Coefficients or feature importance.
+- Permutation importance.
+- SHAP.
+- LIME where applicable.
+- Explain individual predictions.
+- Identify bias and fairness issues.
+
+**Cell 14: Advanced techniques**
+- Algorithm-specific optimizations.
+- Class imbalance handling.
+- Feature selection.
+- Model calibration where applicable.
+- Ensemble comparison.
+- Computational optimization.
+
+**Cell 15: Production-level implementation**
+- Modular Python code.
+- Separate training and prediction scripts.
+- Configuration-driven training.
+- Logging.
+- Exception handling.
+- Input validation.
+- Reproducibility.
+- Model serialization.
+- Model versioning.
+- Unit tests.
+
+**Cell 16: Model deployment**
+- FastAPI REST endpoint.
+- Request/response schemas.
+- Batch inference.
+- Real-time inference.
+- Docker containerization.
+- Health endpoint.
+- Readiness endpoint.
+- Model loading strategy.
+
+**Cell 17: MLOps**
+- MLflow experiment tracking.
+- Model registry.
+- Data versioning.
+- Model monitoring.
+- Data drift detection.
+- Concept drift detection.
+- Retraining strategy.
+- CI/CD.
+- Rollback strategy.
+
+**Cell 18: Performance optimization**
+- CPU and memory usage.
+- Inference latency.
+- Throughput.
+- Batch prediction.
+- Parallel processing.
+- Model size.
+- Scalability.
+
+**Cell 19: Production case study**
+Create a realistic industry use case for this algorithm.
+
+Include:
+- Business problem.
+- Data architecture.
+- ML architecture.
+- Training pipeline.
+- Inference pipeline.
+- Monitoring.
+- Failure scenarios.
+- Business metrics.
+- Production trade-offs.
+
+**Cell 20: Interview preparation**
+- 20 beginner questions.
+- 20 intermediate questions.
+- 20 advanced questions.
+- 10 mathematical questions.
+- 10 production scenario questions.
+- Answers with practical examples.
+
+**Cell 21: Exercises**
+- Beginner exercises.
+- Intermediate exercises.
+- Advanced exercises.
+- Coding challenges.
+- Production implementation challenges.
+- Solutions in a separate notebook or solution section.
+
+## 4. Algorithm-specific completeness
+
+Do not restrict the repository to only the listed algorithms.
+
+For each category:
+- Include classical algorithms.
+- Include important modern algorithms.
+- Include variants.
+- Explain differences between similar algorithms.
+- Explain assumptions and limitations.
+- Compare algorithms on common datasets.
+
+Also cover:
+- Supervised learning.
+- Unsupervised learning.
+- Semi-supervised learning.
+- Self-supervised learning fundamentals.
+- Reinforcement learning fundamentals.
+- Online and incremental learning.
+- Active learning.
+- Transfer learning.
+- Ensemble learning.
+- Time-series forecasting.
+- Anomaly detection.
+- Recommendation systems.
+
+Clearly distinguish traditional ML from deep learning and other related fields.
+
+## 5. Production engineering requirements
+
+All production examples must follow these principles:
+
+1. No data leakage.
+2. Reproducible experiments.
+3. Fixed random seeds where appropriate.
+4. Train/validation/test separation.
+5. Configuration-driven pipelines.
+6. Structured logging.
+7. Type hints and docstrings.
+8. Input schema validation.
+9. Unit and integration tests.
+10. Model artifact versioning.
+11. Monitoring and alerting.
+12. Secure API design.
+13. Docker deployment.
+14. Kubernetes deployment.
+15. CI/CD pipeline.
+16. Rollback and retraining strategy.
+
+Do not claim a model is production-ready merely because its notebook executes successfully.
+
+## 6. Teaching style
+
+I am learning ML from beginner to advanced.
+
+Use simple English with Hindi explanations wherever helpful.
+
+For every concept, explain:
+
+- What?
+- Why?
+- When?
+- How?
+- Real-world example.
+- Mathematical intuition.
+- Python implementation.
+- Production application.
+- Interview explanation.
+
+Explain code line by line.
+
+Never skip intermediate steps.
+
+Every notebook must be cell-wise, with meaningful Markdown headings and executable Python cells.
+
+## 7. Testing and quality requirements
+
+Before completing the repository:
+
+- Verify every notebook is valid JSON.
+- Verify every notebook has separate Markdown and code cells.
+- Run notebooks where dependencies and execution environment allow.
+- Test Python scripts.
+- Check imports.
+- Check relative paths.
+- Ensure datasets are reproducible or documented.
+- Add unit tests.
+- Add a clear setup guide.
+- Do not leave fake implementations or placeholder TODOs.
+- Clearly identify optional dependencies.
+- Document algorithms that require special data or compute.
+
+## 8. Final deliverables
+
+Generate the actual repository and files, not just an explanation.
+
+Provide:
+
+1. Complete folder structure.
+2. Separate folder for every algorithm.
+3. Individual cell-wise Jupyter notebooks.
+4. Production-ready Python project templates.
+5. Training and prediction scripts.
+6. Evaluation scripts.
+7. FastAPI deployment examples.
+8. Dockerfiles.
+9. Kubernetes manifests.
+10. MLflow tracking examples.
+11. Unit tests.
+12. README files.
+13. Interview preparation.
+14. End-to-end ML projects.
+15. Master learning roadmap.
+
+## 9. Execution strategy
+
+This is a large project. Do not try to generate everything in one response and silently omit topics.
+
+Build in phases:
+
+Phase 1: ML fundamentals and regression algorithms.
+
+Phase 2: Classification algorithms.
+
+Phase 3: Unsupervised learning and clustering.
+
+Phase 4: Ensemble learning and anomaly detection.
+
+Phase 5: Time-series ML and neural networks.
+
+Phase 6: Feature engineering, evaluation and explainable AI.
+
+Phase 7: Production ML, MLOps and deployment.
+
+Phase 8: End-to-end industry projects and interviews.
+
+At the end of each phase:
+- Show completed algorithms.
+- Show pending algorithms.
+- Validate generated files.
+- Provide the next phase's execution instructions.
+
+**Most important instruction:** Do not skip any major algorithm or important production topic. Generate separate folders, separate notebooks and cell-wise explanations for every algorithm. Prioritize correctness, completeness, practical learning and production engineering over generating a large number of shallow notebooks.

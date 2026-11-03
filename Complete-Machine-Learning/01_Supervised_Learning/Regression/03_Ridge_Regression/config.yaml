@@ -1,0 +1,11 @@
+algorithm: "Ridge Regression"
+target: value
+random_state: 42
+n_samples: 600
+test_size: 0.2
+scale_numeric: true
+estimator:
+  module: sklearn.linear_model
+  class: Ridge
+  parameters:
+    alpha: 1.0

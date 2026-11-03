@@ -1,0 +1,12 @@
+algorithm: "Polynomial Regression"
+target: value
+random_state: 42
+n_samples: 600
+test_size: 0.2
+scale_numeric: true
+estimator:
+  module: sklearn.pipeline
+  class: make_pipeline
+  parameters:
+    degree: 2
+    include_bias: false

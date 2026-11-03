@@ -1,0 +1,13 @@
+algorithm: "CatBoost Regression"
+target: value
+random_state: 42
+n_samples: 600
+test_size: 0.2
+scale_numeric: false
+estimator:
+  module: catboost
+  class: CatBoostRegressor
+  parameters:
+    iterations: 150
+    learning_rate: 0.05
+    verbose: false

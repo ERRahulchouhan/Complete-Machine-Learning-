@@ -1,0 +1,12 @@
+README.md
+pyproject.toml
+requirements.txt
+complete_machine_learning.egg-info/PKG-INFO
+complete_machine_learning.egg-info/SOURCES.txt
+complete_machine_learning.egg-info/dependency_links.txt
+complete_machine_learning.egg-info/requires.txt
+complete_machine_learning.egg-info/top_level.txt
+ml_course/__init__.py
+ml_course/data.py
+ml_course/pipeline.py
+tests/test_data.py

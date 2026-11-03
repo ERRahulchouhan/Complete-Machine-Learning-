@@ -1,0 +1,12 @@
+algorithm: "Random Forest Regression"
+target: value
+random_state: 42
+n_samples: 600
+test_size: 0.2
+scale_numeric: false
+estimator:
+  module: sklearn.ensemble
+  class: RandomForestRegressor
+  parameters:
+    n_estimators: 150
+    max_depth: 12
