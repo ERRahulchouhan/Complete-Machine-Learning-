@@ -1,0 +1,56 @@
+============ EDA Steps =================
+----------- DATA cleaning and ANALYSIS -------------
+1. Read the data
+2. Create categorical and numerical columns
+3. Data quick checks
+    A) shape  B) Size c) len D) Head E)Tail
+    F) info   
+4. Missing value analysis
+        A) Numerical columns check outliers
+              if outliers present : Median
+              if no outliers      : Mean
+              if you want specific neighbors means: KNNImputer
+
+5. Data quality checks or Data cleaning
+    Ex: Some column values has some punctuations
+        column is numerical value
+        but some where cat value available
+
+
+6. Categorical column analysis
+       A) Frequency table B) Relative frequency
+       C) Bar chart   D) Pie chart
+   write your understanding
+
+
+7. Numerical column Analysis
+       A) statistical summary B) histogram
+       Data distribution 
+    write your understanding
+
+
+8. Outlier analysis 
+      A)Box plot
+      B) Treat the outliers
+
+9. Bi variate and Multi variate analysis
+      A) How one column impact another column
+      B) Correlation  C) Heatmaps 
+
+------------- Feature Engineering -----------------
+10. Encoding : Convert categorical to Numerical
+       A) Label Encoder  B) OneHotEncoder
+11. Scaling : 
+       A) Standardization and B) Normalization
+12. Transformation (Optional)
+ 
+------------- Feature Selection --------------
+13. Selecting the Important features for ML model
+
+---------- Dimension Reduction methods ------
+14. Principle Component Analysis
+    Singular Value Decomposition
+
+------------- Develop the ML model ---------------
+15.
+   
