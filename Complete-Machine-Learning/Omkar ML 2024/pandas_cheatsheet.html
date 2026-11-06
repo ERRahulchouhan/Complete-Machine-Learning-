@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pandas Cheat Sheet for Production ML</title>
+<style>
+:root{color-scheme:dark;--bg:#1f2428;--panel:#272d33;--code:#1a1e22;--text:#cfd6dc;--mute:#8f9aa3;--acc:#8fbf9f;--out:#d6c698;--line:#353d44}
+@media (prefers-color-scheme:light){:root:not([data-theme=dark]){color-scheme:light;--bg:#eef1f3;--panel:#f8f9fa;--code:#e4e9ec;--text:#2b3339;--mute:#66727b;--acc:#3a7a5e;--out:#7a5f1c;--line:#d3dadf}}
+:root[data-theme=light]{color-scheme:light;--bg:#eef1f3;--panel:#f8f9fa;--code:#e4e9ec;--text:#2b3339;--mute:#66727b;--acc:#3a7a5e;--out:#7a5f1c;--line:#d3dadf}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:70px}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.65 Georgia,"Iowan Old Style",serif}
+header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;padding:10px 18px;font-family:system-ui,sans-serif}
+header h1{font-size:17px;margin:0;flex:0 0 auto;font-weight:600}
+#q{flex:1;min-width:0;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font:15px system-ui}
+button{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 12px;cursor:pointer;font:13px system-ui}
+button:hover{border-color:var(--acc)}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.wrap{display:grid;grid-template-columns:210px minmax(0,1fr);gap:28px;max-width:1100px;margin:0 auto;padding:22px 18px 80px}
+nav{position:sticky;top:70px;align-self:start;max-height:calc(100vh - 90px);overflow:auto;font:14px system-ui}
+nav a{display:block;color:var(--mute);text-decoration:none;padding:4px 8px;border-left:2px solid var(--line)}
+nav a:hover{color:var(--acc);border-color:var(--acc)}
+.intro{color:var(--mute);max-width:70ch}
+h2{font-size:22px;margin:38px 0 6px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.item{background:var(--panel);border:1px solid var(--line);border-radius:10px;margin:14px 0;overflow:hidden}
+.item .n{padding:10px 16px 0;font-size:15px}
+.item.hide,section.hide{display:none}
+pre{margin:8px 0 0;padding:12px 16px;overflow-x:auto;font:13.5px/1.55 ui-monospace,Menlo,Consolas,monospace;background:var(--code);position:relative}
+pre.c{color:var(--text)}
+pre.o{color:var(--out);margin-top:0;border-top:1px dashed var(--line)}
+.cp{position:absolute;right:8px;top:8px;font-size:11px;padding:2px 8px}
+.tip{border-left:3px solid var(--acc);background:var(--panel);padding:10px 16px;margin:14px 0;border-radius:0 8px 8px 0;font-size:15px}
+:root{--red:#e58a8a}
+@media (prefers-color-scheme:light){:root:not([data-theme=dark]){--red:#b0413e}}
+:root[data-theme=light]{--red:#b0413e}
+.item.imp{border-left:4px solid var(--red)}
+.item.imp .n{color:var(--red);font-weight:600}
+.tag{margin-left:10px;font:12px system-ui;border:1px solid var(--red);color:var(--red);border-radius:10px;padding:0 8px}
+body.onlyimp .item:not(.imp),body.onlyimp section.noimp{display:none}
+@media(max-width:760px){.wrap{display:block}nav{display:none}header h1{display:none}}
+</style>
+</head>
+<body>
+<header>
+<h1>Pandas Cheat Sheet</h1>
+<input id="q" type="search" placeholder="Search a method, e.g. groupby, merge, fillna" aria-label="Search">
+<button id="f">Important only</button>
+<button id="t">Theme</button>
+</header>
+<div class="wrap">
+<nav id="nav"></nav>
+<main id="main">
+<p class="intro">Methods used most while developing and shipping ML models, each with its output. Every example uses the sample data below (pandas 2.x). Printed output may differ slightly in spacing from your terminal.</p>
+</main>
+</div>
+<script>
+const S=[];
+const A=(t,items)=>S.push({t,items});
+
+A("0. Sample data used everywhere",[
+["Create the DataFrame",
+`import pandas as pd, numpy as np
+
+df = pd.DataFrame({
+  'id':[1,2,3,4,5],
+  'name':['Asha','Ravi','Meena','Kiran','Zoya'],
+  'dept':['HR','IT','IT','Ops','HR'],
+  'salary':[50000,72000,68000,None,55000],
+  'joined':pd.to_datetime(['2021-03-15','2020-07-01','2022-01-10','2023-05-20','2019-11-30'])})
+df`,
+`   id   name dept   salary     joined
+0   1   Asha   HR  50000.0 2021-03-15
+1   2   Ravi   IT  72000.0 2020-07-01
+2   3  Meena   IT  68000.0 2022-01-10
+3   4  Kiran  Ops      NaN 2023-05-20
+4   5   Zoya   HR  55000.0 2019-11-30`]]);
+
+A("1. Read and write data",[
+["Read files (use usecols, dtype, chunksize for big files)",
+`pd.read_csv('data.csv', usecols=['id','salary'], dtype={'id':'int32'}, parse_dates=['joined'])
+pd.read_csv('big.csv', chunksize=100_000)   # iterator of DataFrames
+pd.read_excel('data.xlsx', sheet_name='Sheet1')
+pd.read_json('data.json')
+pd.read_parquet('data.parquet')
+pd.read_sql('SELECT * FROM emp', conn)`,
+`# returns a DataFrame (or an iterator when chunksize is set)`],
+["Write files",
+`df.to_csv('out.csv', index=False)
+df.to_parquet('out.parquet')            # fast, typed, compressed: best for prod
+df.to_json('out.json', orient='records')
+df.to_excel('out.xlsx', index=False)
+df.to_sql('emp', conn, if_exists='replace', index=False)`,
+`# files written, returns None`]]);
+
+A("2. Inspect",[
+["Shape and columns","df.shape\ndf.columns.tolist()","(5, 5)\n['id', 'name', 'dept', 'salary', 'joined']"],
+["head / tail","df.head(2)",
+`   id  name dept   salary     joined
+0   1  Asha   HR  50000.0 2021-03-15
+1   2  Ravi   IT  72000.0 2020-07-01`],
+["info(): dtypes and non-null counts","df.info()",
+`<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 5 entries, 0 to 4
+Data columns (total 5 columns):
+ #   Column  Non-Null Count  Dtype
+---  ------  --------------  -----
+ 0   id      5 non-null      int64
+ 1   name    5 non-null      object
+ 2   dept    5 non-null      object
+ 3   salary  4 non-null      float64
+ 4   joined  5 non-null      datetime64[ns]`],
+["dtypes","df.dtypes","id                 int64\nname              object\ndept              object\nsalary           float64\njoined    datetime64[ns]"],
+["describe()","df['salary'].describe().round(1)",
+`count        4.0
+mean     61250.0
+std      10436.3
+min      50000.0
+25%      53750.0
+50%      61500.0
+75%      69000.0
+max      72000.0`],
+["Unique counts","df['dept'].nunique()\ndf['dept'].unique()\ndf['dept'].value_counts()",
+`3
+array(['HR', 'IT', 'Ops'], dtype=object)
+dept
+HR     2
+IT     2
+Ops    1
+Name: count, dtype: int64`]]);
+
+A("3. Select rows and columns",[
+["Columns","df[['name','dept']].head(2)","   name dept\n0  Asha   HR\n1  Ravi   IT"],
+["loc: by label","df.loc[1,'name']\ndf.loc[0:1,['name','salary']]",
+`'Ravi'
+   name   salary
+0  Asha  50000.0
+1  Ravi  72000.0`],
+["iloc: by position","df.iloc[0:2, 0:2]","   id  name\n0   1  Asha\n1   2  Ravi"],
+["Set index","df.set_index('id').loc[3,'name']","'Meena'"]]);
+
+A("4. Filter",[
+["Boolean mask","df[df['salary'] > 60000][['name','salary']]","    name   salary\n1   Ravi  72000.0\n2  Meena  68000.0"],
+["query()","df.query(\"dept == 'IT' and salary > 70000\")[['name']]","   name\n1  Ravi"],
+["isin / between / str.contains",
+"df[df['dept'].isin(['HR','Ops'])]['name'].tolist()\ndf['salary'].between(55000, 70000).tolist()",
+"['Asha', 'Kiran', 'Zoya']\n[False, False, True, False, True]"]]);
+
+A("5. Missing values",[
+["Count missing","df.isna().sum()","id        0\nname      0\ndept      0\nsalary    1\njoined    0\ndtype: int64"],
+["fillna","df['salary'].fillna(df['salary'].median())","0    50000.0\n1    72000.0\n2    68000.0\n3    61500.0\n4    55000.0\nName: salary, dtype: float64"],
+["dropna","df.dropna(subset=['salary']).shape","(4, 5)"],
+["interpolate / ffill","pd.Series([1,None,3]).interpolate().tolist()\npd.Series([1,None,3]).ffill().tolist()","[1.0, 2.0, 3.0]\n[1.0, 1.0, 3.0]"]]);
+
+A("6. Create and transform columns",[
+["Vectorised math (fast)","df['bonus'] = df['salary'] * 0.1\ndf['bonus']","0    5000.0\n1    7200.0\n2    6800.0\n3       NaN\n4    5500.0\nName: bonus, dtype: float64"],
+["map with a dict","df['dept'].map({'HR':'People','IT':'Tech','Ops':'Ops'})","0    People\n1      Tech\n2      Tech\n3       Ops\n4    People\nName: dept, dtype: object"],
+["apply (slow, last resort)","df['name'].apply(len)","0    4\n1    4\n2    5\n3    5\n4    4\nName: name, dtype: int64"],
+["np.where (if / else)","np.where(df['salary'] > 60000, 'high', 'low')","array(['low', 'high', 'high', 'low', 'low'], dtype='<U4')"],
+["pd.cut: bins","pd.cut(df['salary'], [0,55000,100000], labels=['low','high']).tolist()","['low', 'high', 'high', nan, 'low']"],
+["rename / drop","df.rename(columns={'name':'emp_name'}).columns.tolist()\ndf.drop(columns=['joined']).shape","['id', 'emp_name', 'dept', 'salary', 'joined']\n(5, 4)"],
+["astype","df['id'].astype('int32').dtype","dtype('int32')"],
+["assign (chain friendly)","df.assign(k=df.salary/1000)['k'].tolist()","[50.0, 72.0, 68.0, nan, 55.0]"]]);
+
+A("7. String methods (.str)",[
+["Clean text","s = pd.Series([' Asha ','RAVI','meena'])\ns.str.strip().str.title()","0     Asha\n1     Ravi\n2    Meena\ndtype: object"],
+["contains / replace / split","s.str.lower().str.contains('a').tolist()\ns.str.strip().str.replace('a','4').tolist()\npd.Series(['a-b','c-d']).str.split('-').tolist()",
+"[True, True, True]\n['Ash4', 'RAVI', 'meen4']\n[['a', 'b'], ['c', 'd']]"],
+["Extract with regex","pd.Series(['id=12','id=7']).str.extract(r'(\\d+)')","    0\n0  12\n1   7"]]);
+
+A("8. Sort and rank",[
+["sort_values","df.sort_values('salary', ascending=False)[['name','salary']]","    name   salary\n1   Ravi  72000.0\n2  Meena  68000.0\n4   Zoya  55000.0\n0   Asha  50000.0\n3  Kiran      NaN"],
+["rank","df['salary'].rank(ascending=False)","0    4.0\n1    1.0\n2    2.0\n3    NaN\n4    3.0\nName: salary, dtype: float64"],
+["nlargest","df.nlargest(2,'salary')['name'].tolist()","['Ravi', 'Meena']"]]);
+
+A("9. GroupBy and aggregation",[
+["Simple mean","df.groupby('dept')['salary'].mean()","dept\nHR     52500.0\nIT     70000.0\nOps        NaN\nName: salary, dtype: float64"],
+["Named aggregation (best form)","df.groupby('dept').agg(n=('id','count'), avg=('salary','mean'), top=('salary','max'))","      n      avg      top\ndept                      \nHR    2  52500.0  55000.0\nIT    2  70000.0  72000.0\nOps   1      NaN      NaN"],
+["transform: group stat back on every row (great for features)","df.groupby('dept')['salary'].transform('mean')","0    52500.0\n1    70000.0\n2    70000.0\n3        NaN\n4    52500.0\nName: salary, dtype: float64"],
+["Basic stats","df['salary'].agg(['min','max','mean'])\ndf['salary'].quantile(0.9)","min     50000.0\nmax     72000.0\nmean    61250.0\nName: salary, dtype: float64\n70800.0"]]);
+
+A("10. Merge, join, concat",[
+["merge (SQL join)","d = pd.DataFrame({'dept':['HR','IT'],'head':['Nina','Omar']})\ndf.merge(d, on='dept', how='left')[['name','dept','head']]",
+"    name dept  head\n0   Asha   HR  Nina\n1   Ravi   IT  Omar\n2  Meena   IT  Omar\n3  Kiran  Ops   NaN\n4   Zoya   HR  Nina"],
+["Safe merge: catches duplicate keys","df.merge(d, on='dept', how='left', validate='m:1')","# raises MergeError if d has duplicate dept values"],
+["concat","pd.concat([df.head(1), df.tail(1)]).shape\npd.concat([df, df], axis=1).shape","(2, 5)\n(5, 10)"]]);
+
+A("11. Reshape",[
+["pivot_table","df.pivot_table(index='dept', values='salary', aggfunc='mean')","      salary\ndept        \nHR   52500.0\nIT   70000.0"],
+["melt: wide to long","w = pd.DataFrame({'id':[1,2],'q1':[10,20],'q2':[30,40]})\nw.melt(id_vars='id')","   id variable  value\n0   1       q1     10\n1   2       q1     20\n2   1       q2     30\n3   2       q2     40"],
+["get_dummies: one-hot","pd.get_dummies(df['dept'], dtype=int)","   HR  IT  Ops\n0   1   0    0\n1   0   1    0\n2   0   1    0\n3   0   0    1\n4   1   0    0"]]);
+
+A("12. Dates and time",[
+["Parse safely","pd.to_datetime('2024-02-30', errors='coerce')","NaT"],
+[".dt accessor","df['joined'].dt.year.tolist()\ndf['joined'].dt.day_name().head(2).tolist()","[2021, 2020, 2022, 2023, 2019]\n['Monday', 'Wednesday']"],
+["date_range","pd.date_range('2024-01-01', periods=3, freq='D')","DatetimeIndex(['2024-01-01', '2024-01-02', '2024-01-03'], dtype='datetime64[ns]', freq='D')"],
+["Tenure feature","(pd.Timestamp('2024-01-01') - df['joined']).dt.days.tolist()","[1022, 1280, 721, 226, 1494]"]]);
+
+A("13. Window and lag features",[
+["rolling / cumsum / shift / diff","s = pd.Series([1,2,3,4,5])\ns.rolling(3).mean().tolist()\ns.cumsum().tolist()\ns.shift(1).tolist()\ns.diff().tolist()",
+"[nan, nan, 2.0, 3.0, 4.0]\n[1, 3, 6, 10, 15]\n[nan, 1.0, 2.0, 3.0, 4.0]\n[nan, 1.0, 1.0, 1.0, 1.0]"],
+["Per-group lag (no leakage across groups)","df.sort_values('joined').groupby('dept')['salary'].shift(1)","# previous salary within the same dept"]]);
+
+A("14. Duplicates and cleaning",[
+["Find and drop","df.duplicated().sum()\ndf.drop_duplicates(subset='dept').shape","0\n(3, 5)"],
+["Convert bad numbers","pd.to_numeric(pd.Series(['1','x']), errors='coerce').tolist()","[1.0, nan]"],
+["clip outliers","pd.Series([1,50,1000]).clip(upper=100).tolist()","[1, 50, 100]"]]);
+
+A("15. Production practices",[
+["Shrink memory with category and downcast","df['dept'] = df['dept'].astype('category')\ndf['dept'].cat.categories\ndf['id'] = pd.to_numeric(df['id'], downcast='integer')",
+"Index(['HR', 'IT', 'Ops'], dtype='object')"],
+["Measure memory","df.memory_usage(deep=True).sum()","# bytes; compare before and after dtype changes"],
+["Avoid chained assignment: use loc and copy()","sub = df[df['salary'] > 60000].copy()\nsub.loc[:, 'flag'] = 1","# no SettingWithCopyWarning"],
+["Validate input data before training","assert df['id'].is_unique\nassert df['salary'].dropna().ge(0).all()\nassert {'id','salary'} <= set(df.columns)","# passes silently, raises AssertionError on bad data"],
+["pipe: readable, testable pipeline","def clean(d): return d.dropna(subset=['salary'])\ndef feat(d): return d.assign(k=d['salary']/1000)\n\nout = df.pipe(clean).pipe(feat)\nout['k'].tolist()","[50.0, 72.0, 68.0, 55.0]"],
+["Train/test split without sklearn","train = df.sample(frac=0.8, random_state=42)\ntest = df.drop(train.index)\nlen(train), len(test)","(4, 1)"],
+["Save the exact feature columns used in training","import json\njson.dump(list(X.columns), open('features.json','w'))\nX_live = X_live.reindex(columns=json.load(open('features.json')), fill_value=0)","# guarantees same column order at inference"],
+["Display settings","pd.set_option('display.max_columns', 50)\npd.set_option('display.float_format', '{:.2f}'.format)","# affects printing only"]]);
+
+A("16. filter, where, mask and selection helpers",[
+["df.filter(): pick columns by name (items, like, regex)","df.filter(items=['id','name']).columns.tolist()\ndf.filter(like='a').columns.tolist()\ndf.filter(regex='^s').columns.tolist()\ndf.filter(items=[0,2], axis=0).index.tolist()","['id', 'name']\n['name', 'salary']\n['salary']\n[0, 2]"],
+["Select columns by dtype: Way 1, select_dtypes()","num_cols = df.select_dtypes(include='number').columns.tolist()\ncat_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()\ndate_cols = df.select_dtypes(include='datetime').columns.tolist()\ndf.select_dtypes(exclude='object').shape\nX_num = df.select_dtypes('number')   # the DataFrame itself","['id', 'salary']\n['name', 'dept']\n['joined']\n(5, 3)"],
+["Select columns by dtype: Way 2, df.dtypes with a mask","df.dtypes\ndf.columns[df.dtypes == 'object'].tolist()\ndf.columns[df.dtypes == 'float64'].tolist()\ndf.loc[:, df.dtypes == 'object'].head(2)\n[c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]\ndf.dtypes.value_counts()","id                 int64\nname              object\ndept              object\nsalary           float64\njoined    datetime64[ns]\n['name', 'dept']\n['salary']\n   name dept\n0  Asha   HR\n1  Ravi   IT\n['id', 'salary']\nobject            2\nint64             1\nfloat64           1\ndatetime64[ns]    1"],
+["select_dtypes","df.select_dtypes('number').columns.tolist()\ndf.select_dtypes(include='object').columns.tolist()\ndf.select_dtypes(exclude='datetime').shape","['id', 'salary']\n['name', 'dept']\n(5, 4)"],
+["where: keep value if True, else NaN","df['salary'].where(df['salary'] > 60000).tolist()","[nan, 72000.0, 68000.0, nan, nan]"],
+["mask: replace where True","df['salary'].mask(df['salary'] > 60000, 0).tolist()","[50000.0, 0.0, 0.0, nan, 55000.0]"],
+["AND / OR / NOT conditions","df[(df.dept == 'HR') & (df.salary > 52000)]['name'].tolist()\ndf[(df.dept == 'Ops') | (df.id == 1)]['name'].tolist()\ndf[~df.dept.isin(['HR'])]['name'].tolist()","['Zoya']\n['Asha', 'Kiran']\n['Ravi', 'Meena', 'Kiran']"],
+["String / date filters","df[df['name'].str.startswith('A')]['name'].tolist()\ndf[df['joined'] > '2021-01-01']['name'].tolist()","['Asha']\n['Asha', 'Meena', 'Kiran']"],
+["notna / isnull / notnull","df[df['salary'].notna()].shape\ndf['salary'].isnull().sum()","(4, 5)\n1"],
+["any / all","(df['salary'] > 70000).any()\n(df['salary'] > 0).all()","True\nFalse   # NaN counts as False"],
+["idxmax / idxmin / nsmallest","df['salary'].idxmax()\ndf.loc[df['salary'].idxmin(), 'name']\ndf.nsmallest(2, 'salary')['name'].tolist()","1\n'Asha'\n['Asha', 'Zoya']"],
+["at / iat: fast single value","df.at[1, 'name']\ndf.iat[0, 1]\ndf.iloc[-1]['name']","'Ravi'\n'Asha'\n'Zoya'"],
+["sample / head / tail / slicing","df.sample(2, random_state=1)\ndf.sample(frac=0.5)\ndf[1:3]\ndf[::2].shape","# 2 random rows; half the rows; rows 1-2; (3, 5)"],
+["get / in / len","'salary' in df.columns\ndf.get('nope', 'missing')\nlen(df)","True\n'missing'\n5"]]);
+
+A("17. Add, remove, rename, reorder",[
+["insert / pop","df.insert(1, 'country', 'IN')\ndf.columns.tolist()\nd = df.pop('dept')   # removes column and returns it","['id', 'country', 'name', 'dept', 'salary', 'joined']"],
+["drop rows and columns","df.drop(index=[0, 1]).shape\ndf.drop(columns=['id', 'dept']).shape","(3, 5)\n(5, 3)"],
+["reorder / reindex","df[['name', 'id']].columns.tolist()\ndf.reindex(columns=['id', 'salary', 'new']).columns.tolist()","['name', 'id']\n['id', 'salary', 'new']   # missing column is filled with NaN"],
+["rename all at once; prefix / suffix","df.columns = df.columns.str.upper()\ndf.add_prefix('f_').columns.tolist()\ndf.rename(str.title, axis=1).columns.tolist()","['f_id', 'f_name', 'f_dept', 'f_salary', 'f_joined']\n['Id', 'Name', 'Dept', 'Salary', 'Joined']"],
+["reset_index / sort_index / set_index","df.set_index('name').loc['Ravi', 'dept']\ndf.reset_index(drop=True)\ndf.sort_index(ascending=False).index.tolist()","'IT'\n# index back to 0..n-1\n[4, 3, 2, 1, 0]"],
+["copy (avoid changing the original)","d2 = df.copy()","# independent deep copy"],
+["replace values","df['dept'].replace({'HR': 'People'}).tolist()\ndf['salary'].replace(np.nan, 0).tolist()\ndf.replace('?', np.nan)","['People', 'IT', 'IT', 'Ops', 'People']\n[50000.0, 72000.0, 68000.0, 0.0, 55000.0]"],
+["Conditional assignment with loc","df.loc[df['salary'].isna(), 'salary'] = 0\ndf.loc[df['dept'] == 'IT', 'grade'] = 'A'","# sets values in place for rows that match"],
+["np.select: many conditions","np.select([df.salary < 55000, df.salary < 70000], ['low', 'mid'], 'high')","array(['low', 'high', 'mid', 'high', 'mid'], dtype='<U4')   # NaN falls to default"],
+["apply across rows (axis=1)","df.apply(lambda r: r['name'] + '-' + r['dept'], axis=1).tolist()","['Asha-HR', 'Ravi-IT', 'Meena-IT', 'Kiran-Ops', 'Zoya-HR']"],
+["DataFrame.map: element-wise (old name applymap)","df[['id']].map(lambda x: x * 2)['id'].tolist()","[2, 4, 6, 8, 10]"],
+["map with function","df['dept'].map(str.lower).tolist()","['hr', 'it', 'it', 'ops', 'hr']"],
+["eval / round / abs / clip","df.eval('salary / 1000').tolist()\n(df['salary'] / 7).round(1).tolist()\npd.Series([-3, 4]).abs().tolist()","[50.0, 72.0, 68.0, nan, 55.0]\n[7142.9, 10285.7, 9714.3, nan, 7857.1]\n[3, 4]"],
+["More astype / dtype conversion","df.astype({'id': 'int32', 'salary': 'float32'}).dtypes\ndf['salary'].astype('Int64').tolist()\ndf['id'].astype(str).tolist()\npd.Series([1, None]).convert_dtypes().dtype\ndf.infer_objects().dtypes","# per-column dtype change\n[50000, 72000, 68000, <NA>, 55000]   # nullable integer\n['1', '2', '3', '4', '5']\nInt64\n# re-guesses object columns"],
+["combine_first / update","pd.Series([1, None]).combine_first(pd.Series([9, 8])).tolist()","[1.0, 8.0]"]]);
+
+A("18. Statistics and aggregation",[
+["sum, count, median, var, std, min, max","df['salary'].sum()\ndf['salary'].count()\ndf['salary'].median()\ndf['salary'].var()\ndf['salary'].std().round(2)","245000.0\n4\n61500.0\n108916666.66666667\n10436.31"],
+["Whole frame","df.sum(numeric_only=True)\ndf.mean(numeric_only=True)\ndf.count()","id           15.0\nsalary   245000.0\nid        3.0, salary 61250.0\n# non-null count per column"],
+["mode / nunique / unique","df['dept'].mode().tolist()\ndf['dept'].nunique()","['HR', 'IT']\n3"],
+["value_counts variations","df['dept'].value_counts(normalize=True)\ndf['salary'].value_counts(dropna=False).head(2)","dept\nHR     0.4\nIT     0.4\nOps    0.2\n# counts including NaN"],
+["corr / cov","df[['id', 'salary']].corr().round(2)","         id  salary\nid     1.00   -0.01\nsalary -0.01   1.00"],
+["cumulative: cumsum, cumprod, cummax, cummin","df['salary'].cummax().tolist()","[50000.0, 72000.0, 72000.0, nan, 72000.0]"],
+["pct_change / diff / expanding / ewm","pd.Series([100, 110, 121]).pct_change().round(2).tolist()\ns.expanding().mean().tolist()   # s = [1,2,3,4,5]\ns.ewm(span=3).mean().round(2).tolist()","[nan, 0.1, 0.1]\n[1.0, 1.5, 2.0, 2.5, 3.0]\n[1.0, 1.67, 2.43, 3.27, 4.16]"],
+["qcut: equal-size bins","pd.qcut(pd.Series([1, 2, 3, 4]), 2, labels=['lo', 'hi']).tolist()","['lo', 'lo', 'hi', 'hi']"],
+["crosstab","pd.crosstab(df['dept'], df['salary'] > 60000)","salary  False  True\ndept\nHR          2     0\nIT          0     2\nOps         1     0"],
+["agg with several functions / per-column dict","df['salary'].agg(['sum', 'mean'])\ndf.agg({'salary': 'max', 'id': 'sum'})","sum     245000.0\nmean     61250.0\nsalary    72000.0\nid           15"]]);
+
+A("19. More groupby",[
+["size and as_index=False","df.groupby('dept').size()\ndf.groupby('dept', as_index=False)['salary'].sum()","dept\nHR     2\nIT     2\nOps    1\n\n  dept    salary\n0   HR  105000.0\n1   IT  140000.0\n2  Ops       0.0"],
+["Several functions on one column","df.groupby('dept')['salary'].agg(['min', 'max'])","         min      max\ndept\nHR   50000.0  55000.0\nIT   68000.0  72000.0\nOps      NaN      NaN"],
+["Different functions per column","df.groupby('dept').agg({'salary': 'mean', 'id': 'count'})","       salary  id\nHR    52500.0   2\nIT    70000.0   2\nOps       NaN   1"],
+["groupby.filter: keep groups that match","df.groupby('dept').filter(lambda g: len(g) > 1)['name'].tolist()","['Asha', 'Ravi', 'Meena', 'Zoya']"],
+["first / last / nth / cumcount","df.groupby('dept')['name'].first()\ndf.groupby('dept').cumcount().tolist()","HR     Asha\nIT     Ravi\nOps   Kiran\n[0, 0, 1, 0, 1]"],
+["Rank inside group","df.groupby('dept')['salary'].rank(ascending=False).tolist()","[2.0, 1.0, 2.0, nan, 1.0]"],
+["groupby.apply (custom function)","df.groupby('dept').apply(lambda g: g['salary'].max() - g['salary'].min())","dept\nHR     5000.0\nIT     4000.0\nOps       NaN"],
+["Multiple keys","df.groupby(['dept', 'name'])['salary'].sum().head(2)","dept  name\nHR    Asha     50000.0\n      Zoya     55000.0"],
+["Top row per group","df.sort_values('salary').groupby('dept').tail(1)['name'].tolist()","['Zoya', 'Meena', 'Kiran']"]]);
+
+A("20. Reshape, join and combine (more)",[
+["merge how: inner, left, right, outer + indicator","L = pd.DataFrame({'k': [1, 2, 3]})\nR = pd.DataFrame({'k': [2, 3, 4], 'v': ['a', 'b', 'c']})\nL.merge(R, on='k', how='outer', indicator=True)","   k    v      _merge\n0  1  NaN   left_only\n1  2    a        both\n2  3    b        both\n3  4    c  right_only"],
+["Different key names","df.merge(d, left_on='dept', right_on='d_name')","# keeps both key columns"],
+["Anti-join (rows only in left)","L[~L['k'].isin(R['k'])]","   k\n0  1"],
+["join on index","a.join(b, how='left', rsuffix='_r')","# index-based merge"],
+["concat: ignore_index, keys","pd.concat([L, L], ignore_index=True).shape","(6, 1)"],
+["pivot (no aggregation)","p = pd.DataFrame({'d': ['a', 'a', 'b'], 'k': ['x', 'y', 'x'], 'v': [1, 2, 3]})\np.pivot(index='d', columns='k', values='v')","k    x    y\nd\na  1.0  2.0\nb  3.0  NaN"],
+["stack / unstack","p.pivot(index='d', columns='k', values='v').stack()","d  k\na  x    1.0\n   y    2.0\nb  x    3.0\ndtype: float64"],
+["explode: list column to rows","pd.DataFrame({'a': [1, 2], 'b': [['x', 'y'], ['z']]}).explode('b')","   a  b\n0  1  x\n0  1  y\n1  2  z"],
+["Transpose","df[['id', 'salary']].head(2).T","            0        1\nid        1.0      2.0\nsalary  50000.0  72000.0"],
+["pivot_table with margins and several aggs","df.pivot_table(index='dept', values='salary', aggfunc=['min', 'max'], margins=True)","# adds an All row"],
+["factorize / cat.codes (label encoding)","pd.factorize(df['dept'])[0]\ndf['dept'].astype('category').cat.codes.tolist()","array([0, 1, 1, 2, 0])\n[0, 1, 1, 2, 0]"]]);
+
+A("21. Dates (more)",[
+["More .dt parts","df['joined'].dt.month.tolist()\ndf['joined'].dt.dayofweek.head(2).tolist()\ndf['joined'].dt.is_month_end.tolist()","[3, 7, 1, 5, 11]\n[0, 2]\n[False, False, False, False, True]"],
+["strftime / to_period","df['joined'].dt.strftime('%d-%b-%Y').head(2).tolist()\ndf['joined'].dt.to_period('M').head(1).tolist()","['15-Mar-2021', '01-Jul-2020']\n[Period('2021-03', 'M')]"],
+["resample (needs datetime index)","s = pd.Series([1, 2, 3], index=pd.date_range('2024-01-01', periods=3, freq='D'))\ns.resample('2D').sum()","2024-01-01    3\n2024-01-03    3\nFreq: 2D, dtype: int64"],
+["Timedelta / DateOffset","pd.Timedelta(days=2)\npd.Timestamp('2024-01-31') + pd.DateOffset(months=1)","Timedelta('2 days 00:00:00')\nTimestamp('2024-02-29 00:00:00')"],
+["Time zones","pd.Timestamp('2024-01-01', tz='UTC').tz_convert('Asia/Kolkata')","Timestamp('2024-01-01 05:30:00+0530', tz='Asia/Kolkata')"],
+["Format hint speeds up parsing","pd.to_datetime(df_raw['d'], format='%d/%m/%Y')","# much faster than letting pandas guess"]]);
+
+A("22. More string methods",[
+["len / slice / split expand","s = pd.Series(['Asha Rao', 'Ravi K'])\ns.str.len().tolist()\ns.str[:4].tolist()\ns.str.split(expand=True)","[8, 6]\n['Asha', 'Ravi']\n      0    1\n0  Asha  Rao\n1  Ravi    K"],
+["cat / zfill / pad","s.str.cat(sep='-')\npd.Series(['7', '42']).str.zfill(4).tolist()","'Asha Rao-Ravi K'\n['0007', '0042']"],
+["startswith / endswith / count / isnumeric","s.str.endswith('K').tolist()\ns.str.count('a').tolist()\npd.Series(['12', 'ab']).str.isnumeric().tolist()","[False, True]\n[2, 0]\n[True, False]"],
+["get_dummies from delimited text","pd.Series(['a|b', 'a']).str.get_dummies('|')","   a  b\n0  1  1\n1  1  0"],
+["findall / match","pd.Series(['a1b22']).str.findall(r'[0-9]+').tolist()","[['1', '22']]"]]);
+
+A("23. Convert, loop and inspect objects",[
+["to_dict / to_numpy / tolist","df[['id', 'name']].head(2).to_dict('records')\ndf[['id']].to_numpy().shape\ndf['name'].tolist()","[{'id': 1, 'name': 'Asha'}, {'id': 2, 'name': 'Ravi'}]\n(5, 1)\n['Asha', 'Ravi', ...]"],
+["Loops (slow; prefer vectorised)","for i, row in df.iterrows(): ...\nfor r in df.itertuples(): print(r.name)\nfor col, s in df.items(): ...\nfor n, g in df.groupby('dept'): ...","# itertuples is much faster than iterrows"],
+["Create from dict / list / records","pd.Series({'a': 1, 'b': 2})\npd.DataFrame([{'x': 1}, {'x': 2}])\npd.DataFrame.from_dict({'x': [1, 2]})","a    1\nb    2\n   x\n0  1\n1  2"],
+["Properties","df.size, df.ndim, df.empty, len(df)\ndf.index\ndf.axes","(25, 2, False, 5)\nRangeIndex(start=0, stop=5, step=1)\n[RangeIndex, Index([...])]"],
+["equals / compare","df.equals(df.copy())\ndf.compare(df2)","True\n# shows only the differing cells"],
+["Index operations","idx = pd.Index(['a', 'b'])\nidx.union(pd.Index(['b', 'c'])).tolist()\nidx.intersection(pd.Index(['b'])).tolist()","['a', 'b', 'c']\n['b']"],
+["Categorical","c = df['dept'].astype('category')\nc.cat.categories.tolist()\nc.cat.add_categories(['Fin']).cat.categories.tolist()\nc.cat.reorder_categories(['Ops','IT','HR'], ordered=True)","['HR', 'IT', 'Ops']\n['HR', 'IT', 'Ops', 'Fin']\n# ordered categorical"],
+["MultiIndex","m = df.set_index(['dept', 'name'])\nm.loc[('IT', 'Ravi'), 'salary']\nm.xs('HR', level='dept').shape","72000.0\n(2, 3)"]]);
+
+A("24. Production feature patterns",[
+["IQR outlier clip","q1, q3 = df['salary'].quantile([.25, .75])\niqr = q3 - q1\ndf['salary'].clip(q1 - 1.5*iqr, q3 + 1.5*iqr)","# values outside the fences are capped"],
+["Group-based features (mean / target encoding)","df['dept_avg'] = df.groupby('dept')['salary'].transform('mean')\ndf['dept_cnt'] = df.groupby('dept')['id'].transform('count')\ndf['dept_avg'].tolist()","[52500.0, 70000.0, 70000.0, nan, 52500.0]"],
+["Time-based split (no leakage)","df = df.sort_values('joined')\ncut = int(len(df) * 0.8)\ntrain, test = df.iloc[:cut], df.iloc[cut:]\nlen(train), len(test)","(4, 1)"],
+["Match train columns at inference","X_live = pd.get_dummies(live).reindex(columns=train_cols, fill_value=0)","# same one-hot columns as training"],
+["Copy-on-Write and no inplace","pd.options.mode.copy_on_write = True\ndf = df.dropna()   # not df.dropna(inplace=True)","# safer and chainable"],
+["Read options for messy files","pd.read_csv('f.csv', na_values=['?', 'NA'], thousands=',', encoding='utf-8', on_bad_lines='skip', nrows=1000)","# DataFrame"],
+["Save and load pipelines/objects","df.to_pickle('df.pkl'); pd.read_pickle('df.pkl')\nimport joblib; joblib.dump(model, 'model.pkl')","# pickle only files you trust"],
+["Speed: vectorise, category, timing","%timeit df['salary'] * 2\n%timeit df['salary'].apply(lambda x: x * 2)","# first is far faster"],
+["Schema validation tools","import pandera as pa   # or great_expectations","# declare expected dtypes and ranges, fail early"],
+["Sklearn tie-in","from sklearn.model_selection import train_test_split\nX_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)","# fit scalers and encoders on train only"]]);
+
+A("25. Complete method index (every type, one line each)",[
+["Create objects","pd.DataFrame(): table from dict, list, records, array\npd.Series(): one labelled column\npd.Index / RangeIndex / MultiIndex: row and column labels\npd.date_range / period_range / bdate_range / timedelta_range: sequences of dates\npd.Timestamp / Timedelta / Period / DateOffset: single date objects\npd.Categorical: category array\npd.NA / pd.NaT / np.nan: missing markers\nDataFrame.from_dict / from_records: build from dict or records\npd.json_normalize(): flatten nested JSON\npd.read_clipboard(): read copied data",""],
+["Read (pd.read_*)","read_csv / read_table / read_fwf: text files\nread_excel: xlsx, xls\nread_json / read_xml / read_html: structured text and web tables\nread_parquet / read_feather / read_orc: fast binary columns\nread_sql / read_sql_query / read_sql_table: databases\nread_pickle / read_hdf / read_stata / read_sas / read_spss: other formats",""],
+["Write (df.to_*)","to_csv / to_excel / to_json / to_xml / to_html: text and web\nto_parquet / to_feather / to_orc: binary columns\nto_sql: database table\nto_pickle / to_hdf: Python or HDF5\nto_dict / to_records / to_numpy / to_list / tolist: Python objects\nto_markdown / to_latex / to_string / to_clipboard: display text",""],
+["Attributes (no brackets)","shape / size / ndim: dimensions\ncolumns / index / axes: labels\ndtypes: type of each column\nvalues: NumPy array\nT: transpose\nempty: True if no data\nattrs / flags: metadata\nloc / iloc / at / iat: indexers",""],
+["Inspect","head / tail / sample: look at rows\ninfo / describe / memory_usage: summary\nnunique / unique / value_counts / count: counts\nisna / isnull / notna / notnull: missing flags\nduplicated: duplicate flags\nequals / compare: compare frames\nitems / iterrows / itertuples / keys: iterate\nfirst_valid_index / last_valid_index: first and last non-null\nsqueeze / copy / bool: small helpers",""],
+["Select and filter","[] / loc / iloc / at / iat: pick by label or position\nfilter: pick columns or rows by name pattern\nquery: filter with a string expression\nwhere / mask: keep or replace by condition\nisin / between: membership and range tests\nselect_dtypes: pick columns by type\nxs: cross-section (MultiIndex)\nget / take / truncate: other pickers\nnlargest / nsmallest / idxmax / idxmin: top and bottom\ndrop / pop / insert: remove or add columns\nhead / tail / sample: row subsets\ndroplevel: remove an index level",""],
+["Missing data","isna / notna: detect\nfillna / ffill / bfill: fill values\ndropna: remove rows or columns\ninterpolate: estimate between points\nreplace: swap values\ncombine_first / update: fill from another frame\nclip: limit values\nconvert_dtypes: use nullable types",""],
+["Types and conversion","astype: change dtype\nconvert_dtypes / infer_objects: auto-pick better dtypes\npd.to_numeric / to_datetime / to_timedelta: parse values\nastype('category'): save memory\npd.api.types.is_numeric_dtype / is_string_dtype / is_datetime64_any_dtype: type checks\nto_numpy: array\nround / abs: numeric clean",""],
+["Apply and transform","apply: run a function on columns, rows or Series\nmap: element-wise on Series (also DataFrame.map)\napplymap: old name of DataFrame.map\ntransform: same-length result\nagg / aggregate: summarise\npipe: chain custom functions\nassign: add columns in a chain\neval: expression on columns\nnp.where / np.select: if-else logic\ncut / qcut: bin numbers\nfactorize: label encode\nrank: ranking",""],
+["Maths and statistics","sum / prod / mean / median / mode: centre\nstd / var / sem: spread\nmin / max / quantile / idxmin / idxmax: extremes\nskew / kurt: shape\ncorr / cov / corrwith: relationships\ncumsum / cumprod / cummax / cummin: running totals\ndiff / pct_change / shift: change over rows\nabs / round / clip: element fixes\nadd / sub / mul / div / mod / pow / floordiv: arithmetic with fill_value\nradd / rsub / rmul / rdiv: reversed arithmetic\neq / ne / lt / le / gt / ge: comparison\ndot: matrix product\nnunique / count / value_counts: counting\nany / all: boolean reductions",""],
+["Sort and index","sort_values / sort_index: order\nrank: rank values\nreset_index / set_index: move columns to or from index\nreindex / reindex_like: conform to new labels\nrename / rename_axis / set_axis: change labels\nadd_prefix / add_suffix: label edits\nswaplevel / reorder_levels: MultiIndex order\ndrop_duplicates / duplicated: remove or flag repeats\nalign: line up two objects",""],
+["Reshape","pivot / pivot_table: long to wide\nmelt / wide_to_long: wide to long\nstack / unstack: move levels between rows and columns\nexplode: list items to rows\ntranspose / T: swap rows and columns\ncrosstab: frequency table\nget_dummies / from_dummies: one-hot and back\nsqueeze: drop length-1 dimension",""],
+["Combine","merge: SQL-style join on columns\njoin: join on index\nconcat: stack frames\nmerge_asof / merge_ordered: nearest-key and ordered joins\ncombine / combine_first / update: element rules\ncompare: show differences\nalign: align two objects",""],
+["GroupBy methods","groupby: split into groups\nagg / aggregate / apply / transform / filter: work on groups\nsize / count / nunique: counts\nsum / mean / median / min / max / std / var / sem / prod / quantile: stats\nfirst / last / nth / head / tail: pick rows per group\ncumcount / ngroup / rank / cumsum / cummax: running per group\nshift / diff / pct_change: change per group\nidxmax / idxmin / describe / value_counts / sample: more\nget_group / groups / ngroups: look inside\npipe / ffill / bfill / fillna: other helpers\nrolling / expanding / ewm / resample: windows per group\npd.Grouper: group by time frequency",""],
+["Window and time series","rolling(): moving window (.mean, .sum, .std, .apply, .corr)\nexpanding(): growing window\newm(): exponential weights\nresample(): change time frequency\nasfreq / shift / diff / pct_change: time moves\nbetween_time / at_time: pick by time of day\ntz_localize / tz_convert: time zones\ninfer_freq: guess frequency",""],
+["String methods (.str)","lower / upper / title / capitalize / swapcase / casefold: case\nstrip / lstrip / rstrip: remove spaces\nlen / count / find / rfind / index: measure and search\ncontains / startswith / endswith / match / fullmatch: tests\nreplace / removeprefix / removesuffix / translate / slice_replace: edit\nextract / extractall / findall: regex capture\nsplit / rsplit / partition / rpartition: break apart\njoin / cat / repeat / get / slice: build and index\npad / center / ljust / rjust / zfill / wrap: layout\nisalpha / isdigit / isnumeric / isalnum / isspace / islower / isupper / istitle / isdecimal: checks\nget_dummies / normalize / encode / decode: encoding",""],
+["Date methods (.dt)","year / month / day / hour / minute / second / microsecond / nanosecond: parts\ndayofweek / weekday / dayofyear / quarter / days_in_month / isocalendar(): calendar\nis_month_start / is_month_end / is_quarter_start / is_quarter_end / is_year_start / is_year_end / is_leap_year: flags\nday_name() / month_name(): names\nstrftime / to_period / to_pydatetime: convert\nfloor / ceil / round / normalize: snap to unit\ndate / time / tz: split out\ntz_localize / tz_convert: time zones\ntotal_seconds / days / seconds / components: timedelta parts",""],
+["Category methods (.cat)","categories / codes / ordered: properties\nadd_categories / remove_categories / remove_unused_categories: edit set\nrename_categories / reorder_categories / set_categories: relabel\nas_ordered / as_unordered: ordering",""],
+["Index methods","union / intersection / difference / symmetric_difference: set logic\nis_unique / duplicated / unique / nunique: uniqueness\nget_loc / get_indexer / isin / contains: lookup\nsort_values / argsort / min / max: order\nset_names / rename / get_level_values / droplevel: names and levels\nMultiIndex.from_tuples / from_product / from_arrays / from_frame: build\nto_list / to_frame / to_series: convert",""],
+["Plot and style","plot (kind: line, bar, barh, hist, box, kde, area, pie, scatter, hexbin): charts\nhist / boxplot / plot.scatter: quick views\nstyle.format / background_gradient / highlight_max / bar: coloured tables\nstyle.to_html / to_latex: export styled table",""],
+["Top-level functions and options","pd.concat / merge / merge_asof / pivot_table / melt / crosstab / get_dummies / cut / qcut: reshape tools\npd.to_numeric / to_datetime / to_timedelta: parsing\npd.isna / notna / unique / factorize / eval: helpers\npd.set_option / get_option / reset_option / option_context: display settings\npd.testing.assert_frame_equal / assert_series_equal: tests\npd.api.types.*: dtype checks\npd.options.mode.copy_on_write: safer assignment",""]]);
+
+const nav=document.getElementById('nav'), main=document.getElementById('main');
+const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const IMP=['info()','describe()','boolean mask','query()','count missing','fillna','dropna','map with a dict','np.where','astype','merge (sql','safe merge','transform','named aggregation','get_dummies','pivot_table','sort_values','loc: by','iloc: by','df.filter()','select columns by dtype','validate input','chained assignment','pipe','train/test split','save the exact','vectorised math','unique counts','groupby.filter','time-based split','match train columns','group-based features'];
+const isImp=n=>IMP.some(k=>n.toLowerCase().includes(k));
+S.forEach((s,i)=>{
+  const id='s'+i;
+  nav.insertAdjacentHTML('beforeend',`<a href="#${id}">${esc(s.t)}</a>`);
+  const sec=document.createElement('section');sec.id=id;
+  sec.innerHTML=`<h2>${esc(s.t)}</h2>`+s.items.map(it=>`<div class="item${isImp(it[0])?' imp':''}"><div class="n">${esc(it[0])}${isImp(it[0])?'<span class="tag">Important</span>':''}</div><pre class="c"><button class="cp">Copy</button>${esc(it[1])}</pre>${it[2]?'<pre class="o">'+esc(it[2])+'</pre>':''}</div>`).join('');
+  main.appendChild(sec);
+});
+main.insertAdjacentHTML('beforeend','<div class="tip"><b>Rules of thumb:</b> prefer vectorised operations over apply, use parquet over csv, set dtypes early, validate merges, and keep the exact training pipeline for inference.</div>');
+main.addEventListener('click',e=>{if(e.target.classList.contains('cp')){const t=e.target.parentElement.textContent.replace(/^Copy/,'');navigator.clipboard&&navigator.clipboard.writeText(t).then(()=>{e.target.textContent='Copied';setTimeout(()=>e.target.textContent='Copy',1200)}).catch(()=>{})}});
+document.getElementById('q').addEventListener('input',e=>{
+  const v=e.target.value.toLowerCase();
+  document.querySelectorAll('section').forEach(sec=>{
+    let any=false;
+    sec.querySelectorAll('.item').forEach(it=>{const m=!v||it.textContent.toLowerCase().includes(v);it.classList.toggle('hide',!m);any=any||m});
+    sec.classList.toggle('hide',!any);
+  });
+});
+document.getElementById('f').onclick=()=>{
+  const on=document.body.classList.toggle('onlyimp');
+  document.querySelectorAll('section').forEach(s=>s.classList.toggle('noimp',on&&!s.querySelector('.imp')));
+  document.getElementById('f').textContent=on?'Show all':'Important only';
+};
+main.insertAdjacentHTML('afterbegin','<p class="intro">Red border and tag mean important: the methods you will use in almost every project. Use the Important only button to see just those.</p>');
+document.getElementById('t').onclick=()=>{
+  const r=document.documentElement,dark=getComputedStyle(r).colorScheme==='dark';
+  r.dataset.theme=dark?'light':'dark';
+};
+</script>
+</body>
+</html>
