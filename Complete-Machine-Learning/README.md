@@ -34,16 +34,124 @@ The EDA notebooks cover dataset inspection, univariate and multivariate analysis
 
 | Order | Stage | Method names | Use | Production? |
 |---:|---|---|---|---|
-| 1 | Load and combine data | `pandas.read_csv()`, `pandas.read_excel()`, `pandas.concat()`, `pandas.merge()`, `DataFrame.join()` | Load files and combine related tables using the correct keys; validate join cardinality and row counts. | **Yes**, with schema, source, and data-quality validation. |
-| 2 | Inspect structure and quality | `DataFrame.head()`, `DataFrame.shape`, `DataFrame.info()`, `DataFrame.describe()`, `DataFrame.dtypes`, `DataFrame.isna().sum()`, `DataFrame.duplicated().sum()`, `Series.nunique()`, `Series.value_counts()` | Check dimensions, types, ranges, missing values, duplicate rows, frequencies, and categorical cardinality. Resolve or document data-quality issues. | **Yes**, as validation and monitoring checks; avoid relying on manual inspection alone. |
-| 3 | Analyze individual columns | `Series.describe()`, `Series.hist()`, `seaborn.countplot()`, `seaborn.histplot()`, `seaborn.boxplot()` | Summarize categorical frequencies and numerical distributions; investigate unusual values. | **Mostly offline** for exploration; production monitoring may track approved summary statistics and drift. |
-| 4 | Analyze relationships and outliers | `DataFrame.corr()`, `pandas.crosstab()`, `seaborn.scatterplot()`, `seaborn.heatmap()`; domain thresholds, IQR, `scipy.stats.zscore()`, `scipy.stats.median_abs_deviation()`, percentile bounds/`DataFrame.clip()`, `IsolationForest`, `LocalOutlierFactor` | Explore relationships and flag unusual observations. IQR/MAD are robust univariate options; Z-score is sensitive to skew and extreme values; Isolation Forest/LOF can flag multivariate anomalies. Investigate flags and confirm errors before removing or capping values. | **Conditional**: document the method and thresholds; monitor validated numeric rules in production. Fit learned detectors on training data and persist them if inference-time anomaly detection is needed. |
-| 5 | Split the data | `sklearn.model_selection.train_test_split()`, `GroupShuffleSplit`, `TimeSeriesSplit` | Split before fitting any data-dependent preprocessing. Use stratification for classification, groups for related observations, or time-based splits for temporal data. | **Training/evaluation only**, not request-time inference; preserve split strategy for reproducible retraining. |
-| 6 | Impute missing values | `sklearn.impute.SimpleImputer(strategy="median")`, `SimpleImputer(strategy="mean")`, `SimpleImputer(strategy="most_frequent")`, `SimpleImputer(strategy="constant")`, `sklearn.impute.KNNImputer()`, `DataFrame.fillna()` | Fit imputers on training data. Choose a strategy appropriate to the feature and preserve missingness indicators when useful. `fillna()` is suitable for explicit fixed rules; learned statistics must come from training data. | **Yes, conditionally**: persist the fitted imputer in the inference pipeline. Do not recalculate statistics independently on production batches. |
-| 7 | Encode categorical data | `sklearn.preprocessing.OneHotEncoder(handle_unknown="ignore")`, `sklearn.preprocessing.OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)`, `pd.get_dummies()`, `Series.map()`, `Series.replace()`, `sklearn.preprocessing.LabelEncoder()`, `category_encoders.TargetEncoder()` | Use one-hot encoding for nominal input features and ordinal encoding only when category order is real. `Series.map()` or `Series.replace()` works for a fixed, explicit business mapping; handle unmapped/new values. `pd.get_dummies()` is convenient for exploration, but independently encoding train and inference data can produce mismatched columns. `LabelEncoder` is for target labels (`y`), not nominal input features. Target encoding needs leakage-safe cross-fitting and smoothing. | **Yes, preferably** with fitted encoders inside `Pipeline`/`ColumnTransformer`, persisted with the model, and tested for unknown categories. Fixed `map`/`replace` mappings can be production-safe if versioned and have an explicit unknown fallback. `pd.get_dummies()` is **not preferred alone** for production inference; use a persisted, schema-consistent encoder. Use `LabelEncoder` only for target labels. Use target encoding only with leakage controls. |
-| 8 | Transform numerical data | `sklearn.preprocessing.PowerTransformer()`, `numpy.log1p()`, `numpy.sqrt()`, `FunctionTransformer()` | Reduce skew when appropriate. Ensure the transform supports the feature values and is invertible/interpretable when required. | **Yes, conditionally**: persist the fitted transformer or exact deterministic function in the pipeline. |
-| 9 | Scale numerical data | `sklearn.preprocessing.StandardScaler()`, `sklearn.preprocessing.MinMaxScaler()`, `sklearn.preprocessing.RobustScaler()` | Scale when needed by the estimator (for example, distance-based models, SVMs, or regularized linear models); tree-based models usually do not require scaling. | **Yes, conditionally**: fit on training data and persist for inference; do not refit on each production request or batch. |
-| 10 | Select features and validate | `sklearn.feature_selection.VarianceThreshold()`, `sklearn.feature_selection.SelectKBest()`, `sklearn.feature_selection.mutual_info_classif()`, `statsmodels.stats.outliers_influence.variance_inflation_factor()` | Fit feature selection on training data only, use a target-appropriate score, and assess choices with validation data. VIF is a diagnostic, not a general-purpose selector. | **Yes, conditionally**: persist fitted selectors with the model and validate performance and feature schema after retraining. |
+| 1 | Load and combine data | `pandas.read_csv()`, `pandas.read_excel()`, `pandas.concat()`, `pandas.merge()`, `DataFrame.join()` | Load files and combine related tables; validate keys and row counts. | **Yes**, with schema, source, and data-quality validation. |
+| 2 | Inspect structure and quality | `DataFrame.head()`, `DataFrame.shape`, `DataFrame.info()`, `DataFrame.describe()`, `DataFrame.dtypes`, `DataFrame.isna().sum()`, `DataFrame.duplicated().sum()`, `Series.nunique()`, `Series.value_counts()` | Check types, ranges, missingness, duplicates, frequencies, and category counts. Resolve or document data-quality issues. | **Yes**, as validation and monitoring checks; avoid relying on manual inspection alone. |
+| 3 | Analyze individual columns | `Series.describe()`, `Series.hist()`, `seaborn.countplot()`, `seaborn.histplot()`, `seaborn.boxplot()` | Summarize category frequencies and numeric distributions; inspect unusual values. | **Mostly offline** for exploration; production monitoring may track approved summary statistics and drift. |
+| 4 | Analyze relationships and outliers | `DataFrame.corr()`, `pandas.crosstab()`, `seaborn.scatterplot()`, `seaborn.heatmap()`; domain thresholds, IQR, `scipy.stats.zscore()`, `scipy.stats.median_abs_deviation()`, percentile bounds/`DataFrame.clip()`, `IsolationForest`, `LocalOutlierFactor` | Explore feature relationships and flag unusual records. Investigate flags before removing or capping; Z-score is sensitive to skew, while MAD/IQR are more robust. | **Conditional**: document thresholds and monitor validated rules. Persist learned detectors if needed at inference. |
+| 5 | Split the data | `sklearn.model_selection.train_test_split()`, `GroupShuffleSplit`, `TimeSeriesSplit` | Split before learned preprocessing; use stratified, group, or time-based splits as appropriate. | **Training/evaluation only**, not request-time inference; preserve split strategy for reproducible retraining. |
+| 6 | Impute missing values | `sklearn.impute.SimpleImputer(strategy="median")`, `SimpleImputer(strategy="mean")`, `SimpleImputer(strategy="most_frequent")`, `SimpleImputer(strategy="constant")`, `sklearn.impute.KNNImputer()`, `DataFrame.fillna()` | Choose a feature-appropriate strategy; fit learned statistics on training data. Use `fillna()` for explicit fixed rules. | **Yes, conditionally**: persist the fitted imputer in the inference pipeline. Do not recalculate statistics independently on production batches. |
+| 7 | Encode categorical data | `sklearn.preprocessing.OneHotEncoder(handle_unknown="ignore")`, `sklearn.preprocessing.OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)`, `pd.get_dummies()`, `Series.map()`, `Series.replace()`, `sklearn.preprocessing.LabelEncoder()`, `category_encoders.TargetEncoder()` | One-hot encode nominal and ordinal-encode ordered features. Use `map`/`replace` for fixed mappings; `LabelEncoder` for target labels only. | **Yes, preferably** with persisted pipeline encoders and unknown-category handling. Use `pd.get_dummies()` mainly for exploration; target encoding requires leakage controls. |
+| 8 | Transform numerical data | Domain/unit conversion; `numpy.log()`, `numpy.log1p()`, `numpy.sqrt()`, `numpy.reciprocal()`; `sklearn.preprocessing.PowerTransformer(method="yeo-johnson"|"box-cox")`; `sklearn.preprocessing.QuantileTransformer()`; `sklearn.preprocessing.KBinsDiscretizer()`; `sklearn.preprocessing.PolynomialFeatures()`; `sklearn.preprocessing.SplineTransformer()`; `sklearn.preprocessing.FunctionTransformer()` | Select by feature meaning and model; check input domains. Box-Cox needs positive values; Yeo-Johnson supports zero and negatives. | **Yes, conditionally**: fit learned transforms on training data and persist in the inference pipeline. |
+| 9 | Scale numerical data | `sklearn.preprocessing.StandardScaler()`, `sklearn.preprocessing.MinMaxScaler()`, `sklearn.preprocessing.RobustScaler()` | Scale for scale-sensitive models; tree-based models usually do not need it. | **Yes, conditionally**: fit on training data and persist for inference; do not refit per request or batch. |
+| 10 | Select features and validate | `sklearn.feature_selection.VarianceThreshold()`, `sklearn.feature_selection.SelectKBest()`, `sklearn.feature_selection.mutual_info_classif()`, `statsmodels.stats.outliers_influence.variance_inflation_factor()` | Select using training data and a target-appropriate score; assess with validation data. VIF is diagnostic. | **Yes, conditionally**: persist fitted selectors and validate performance and feature schema after retraining. |
+| 11 | Compose and persist preprocessing | `sklearn.compose.ColumnTransformer()`, `sklearn.pipeline.Pipeline()`, `sklearn.compose.make_column_selector()` | Apply separate transformations to numeric and categorical columns, then pass the result to the estimator in one consistent workflow. | **Recommended**: fit once on training data, persist the full pipeline, and use the same fitted pipeline for inference. |
+| 12 | Validate models and tune parameters | `sklearn.model_selection.cross_validate()`, `StratifiedKFold`, `GroupKFold`, `TimeSeriesSplit`, `GridSearchCV`, `RandomizedSearchCV`; task-appropriate metrics | Compare candidates and tune parameters using training/validation data; reserve the test set for final evaluation. | **Training/retraining only**: record folds, metrics, parameters, and data versions; do not tune against production traffic or the held-out test set. |
+| 13 | Validate inputs and persist model | `pandera.DataFrameSchema`, `pydantic.BaseModel`, `sklearn.utils.validation.check_is_fitted()`, `joblib.dump()`, `joblib.load()` | Enforce expected columns, types, ranges, and required fields; save and load the fitted preprocessing-plus-model pipeline. | **Recommended**: validate every production request, version model and schema together, and load artifacts only from trusted sources. |
+
+### Production preprocessing pipeline example
+
+Replace `X`, `y`, and the feature column lists with the dataset's features and target. The pipeline learns imputers, scaler, and encoder from the training split only; unknown categories are safely ignored during transform.
+
+```python
+from sklearn.compose import ColumnTransformer
+from sklearn.impute import SimpleImputer
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+
+numeric_features = ["age", "income"]
+categorical_features = ["city", "plan"]
+
+numeric_pipeline = Pipeline([
+    ("imputer", SimpleImputer(strategy="median")),
+    ("scaler", StandardScaler()),
+])
+categorical_pipeline = Pipeline([
+    ("imputer", SimpleImputer(strategy="most_frequent")),
+    ("encoder", OneHotEncoder(handle_unknown="ignore")),
+])
+
+preprocessor = ColumnTransformer([
+    ("numeric", numeric_pipeline, numeric_features),
+    ("categorical", categorical_pipeline, categorical_features),
+])
+model_pipeline = Pipeline([
+    ("preprocessor", preprocessor),
+    ("classifier", LogisticRegression(max_iter=1000)),
+])
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y
+)
+model_pipeline.fit(X_train, y_train)
+test_score = model_pipeline.score(X_test, y_test)
+predictions = model_pipeline.predict(X_test)
+```
+
+### Numerical transformation code examples
+
+These are alternatives, not steps to apply all at once. `X_train` and `X_test` should already be split and have missing values handled. Fit each learned transformation on training data only.
+
+```python
+import numpy as np
+from sklearn.preprocessing import (
+    FunctionTransformer,
+    KBinsDiscretizer,
+    PolynomialFeatures,
+    PowerTransformer,
+    QuantileTransformer,
+    SplineTransformer,
+)
+
+# Fixed domain/unit conversion: use the same conversion at training and inference.
+df["distance_km"] = df["distance_m"] / 1000
+
+# Simple transforms: apply only when the feature values meet the stated domain.
+log_values = np.log1p(X_train["nonnegative_feature"])  # values must be >= 0
+sqrt_values = np.sqrt(X_train["nonnegative_feature"])  # values must be >= 0
+reciprocal_values = 1 / X_train["nonzero_feature"]  # values must not be 0
+
+# Yeo-Johnson supports zero and negative values. Box-Cox requires values > 0.
+power_transformer = PowerTransformer(method="yeo-johnson")
+X_train_power = power_transformer.fit_transform(X_train[numeric_columns])
+X_test_power = power_transformer.transform(X_test[numeric_columns])
+
+# For strictly positive columns only:
+box_cox = PowerTransformer(method="box-cox")
+X_train_box_cox = box_cox.fit_transform(X_train[positive_columns])
+X_test_box_cox = box_cox.transform(X_test[positive_columns])
+
+# Map each feature approximately to a normal distribution (nonlinear).
+quantile_transformer = QuantileTransformer(
+    n_quantiles=min(1000, len(X_train)),
+    output_distribution="normal",
+    random_state=42,
+)
+X_train_quantile = quantile_transformer.fit_transform(X_train[numeric_columns])
+X_test_quantile = quantile_transformer.transform(X_test[numeric_columns])
+
+# Discretize continuous features into quantile-based bins.
+binner = KBinsDiscretizer(n_bins=5, encode="onehot", strategy="quantile")
+X_train_binned = binner.fit_transform(X_train[numeric_columns])
+X_test_binned = binner.transform(X_test[numeric_columns])
+
+# Add polynomial or spline basis features for models that need nonlinear effects.
+polynomial = PolynomialFeatures(degree=2, include_bias=False)
+X_train_poly = polynomial.fit_transform(X_train[numeric_columns])
+X_test_poly = polynomial.transform(X_test[numeric_columns])
+
+spline = SplineTransformer(n_knots=5, degree=3)
+X_train_spline = spline.fit_transform(X_train[["one_numeric_feature"]])
+X_test_spline = spline.transform(X_test[["one_numeric_feature"]])
+
+# Wrap a deterministic function when it must be composed in a sklearn pipeline.
+log_transformer = FunctionTransformer(np.log1p, feature_names_out="one-to-one")
+X_train_log = log_transformer.fit_transform(X_train[["nonnegative_feature"]])
+X_test_log = log_transformer.transform(X_test[["nonnegative_feature"]])
+```
+
+In production, place the selected transformation in the same versioned `Pipeline`/`ColumnTransformer` as the estimator. Do not fit a transformer on each request or the full dataset before splitting. Use domain validation instead of silently clipping invalid values; ensure training and inference use the same feature order and transformation parameters.
 
 ### Outlier detection code examples
 
