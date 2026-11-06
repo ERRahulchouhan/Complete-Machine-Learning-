@@ -48,6 +48,156 @@ The EDA notebooks cover dataset inspection, univariate and multivariate analysis
 | 12 | Validate models and tune parameters | `sklearn.model_selection.cross_validate()`, `StratifiedKFold`, `GroupKFold`, `TimeSeriesSplit`, `GridSearchCV`, `RandomizedSearchCV`; task-appropriate metrics | Compare candidates and tune parameters using training/validation data; reserve the test set for final evaluation. | **Training/retraining only**: record folds, metrics, parameters, and data versions; do not tune against production traffic or the held-out test set. |
 | 13 | Validate inputs and persist model | `pandera.DataFrameSchema`, `pydantic.BaseModel`, `sklearn.utils.validation.check_is_fitted()`, `joblib.dump()`, `joblib.load()` | Enforce expected columns, types, ranges, and required fields; save and load the fitted preprocessing-plus-model pipeline. | **Recommended**: validate every production request, version model and schema together, and load artifacts only from trusted sources. |
 
+### Feature selection methods: why and when
+
+Feature selection is optional: compare each approach with a no-selection baseline using cross-validation. Remove leakage and unavailable-at-prediction-time fields first. Fit every data-dependent selector inside the training folds or a pipeline; never select features using the test set.
+
+| Method | Why use it | When to use it / cautions |
+|---|---|---|
+| Domain-based selection | Keeps valid, available, interpretable inputs. | Start here; exclude IDs, leakage, post-outcome data, and prohibited fields based on documented rules. |
+| `VarianceThreshold` | Removes constant or near-constant columns cheaply. | Unsupervised first filter; scale-dependent for non-binary data and does not consider the target. |
+| Correlation filter | Removes redundant numeric predictors. | Useful before linear models; choose one of highly correlated pairs using domain knowledge. Correlation is not evidence that a feature is useless. |
+| `SelectKBest` with `f_classif` / `f_regression` | Fast univariate ranking by linear association. | Good baseline for numeric features; can miss interactions and nonlinear effects. |
+| `SelectKBest` with `mutual_info_classif` / `mutual_info_regression` | Detects broader, including nonlinear, univariate dependence. | Use when relationships may be nonlinear; score estimates can vary and ignore feature interactions. |
+| `SelectKBest` with `chi2` | Scores non-negative counts/frequencies for classification. | Use only with non-negative input; do not apply directly to centered/scaled values that can be negative. |
+| `RFE` / `RFECV` | Recursively removes weaker features using an estimator. | Use when feature count is manageable and the estimator has meaningful coefficients/importances; `RFECV` uses CV but can be computationally expensive. |
+| `SelectFromModel` (L1 / tree model) | Selects using a fitted model's coefficients or importances. | Useful for sparse linear models or tree-based models; results depend on model, regularization, and importance bias. |
+| `SequentialFeatureSelector` | Searches forward or backward for a subset that scores well with a chosen estimator. | Useful for small/medium feature sets; computationally expensive and CV must respect group/time structure. |
+| Permutation importance | Measures validation-score drop when a feature is shuffled. | Use after fitting a credible model to compare predictive contribution; correlated features can mask each other's importance. Compute on held-out validation data, not the test set used for final reporting. |
+| VIF | Diagnoses multicollinearity in numeric predictors. | Useful for coefficient stability/interpretation in linear regression; it is a diagnostic rather than a universal selection rule and needs `statsmodels`. |
+
+#### Feature selection code examples
+
+Examples assume `X_train` is numeric and imputed, `y_train` is the target, and the task/scoring match the actual problem. These selectors are alternatives; do not apply all of them automatically.
+
+```python
+import pandas as pd
+import numpy as np
+from functools import partial
+from sklearn.feature_selection import (
+    RFE,
+    RFECV,
+    SelectFromModel,
+    SelectKBest,
+    SequentialFeatureSelector,
+    VarianceThreshold,
+    f_classif,
+    mutual_info_classif,
+    f_regression,
+    mutual_info_regression,
+)
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.inspection import permutation_importance
+from sklearn.svm import LinearSVC
+
+# 1. Remove constant columns; use feature names to inspect what remains.
+variance_selector = VarianceThreshold(threshold=0.0)
+X_train_nonconstant = variance_selector.fit_transform(X_train)
+nonconstant_features = X_train.columns[variance_selector.get_support()]
+
+# 2. Univariate classification ranking: choose one scoring function.
+univariate_selector = SelectKBest(score_func=f_classif, k=10)
+X_train_kbest = univariate_selector.fit_transform(X_train, y_train)
+kbest_features = X_train.columns[univariate_selector.get_support()]
+
+mi_selector = SelectKBest(
+    score_func=partial(mutual_info_classif, random_state=42), k=10
+)
+X_train_mi = mi_selector.fit_transform(X_train, y_train)
+mi_features = X_train.columns[mi_selector.get_support()]
+
+# For regression, use SelectKBest(score_func=f_regression, k=10)
+# or partial(mutual_info_regression, random_state=42).
+# For non-negative count/frequency data, chi2 is another classification option.
+
+# 3. Correlation filter: keep the first column from each highly correlated pair.
+corr = X_train.corr(numeric_only=True).abs()
+upper_triangle = corr.where(
+    np.triu(np.ones(corr.shape, dtype=bool), k=1)
+)
+correlated_to_drop = [
+    column for column in upper_triangle.columns
+    if (upper_triangle[column] > 0.95).any()
+]
+X_train_uncorrelated = X_train.drop(columns=correlated_to_drop)
+
+# 4. Recursive feature elimination; RFECV chooses feature count by CV.
+base_model = LogisticRegression(max_iter=1000)
+rfe = RFE(estimator=base_model, n_features_to_select=10)
+X_train_rfe = rfe.fit_transform(X_train, y_train)
+rfe_features = X_train.columns[rfe.get_support()]
+
+rfecv = RFECV(
+    estimator=base_model,
+    step=1,
+    cv=5,
+    scoring="roc_auc",
+)
+rfecv.fit(X_train, y_train)
+rfecv_features = X_train.columns[rfecv.get_support()]
+
+# 5. Model-based selection (L1 sparsity or tree feature importances).
+l1_selector = SelectFromModel(
+    LinearSVC(penalty="l1", dual=False, C=0.1, max_iter=1000)
+)
+X_train_l1 = l1_selector.fit_transform(X_train, y_train)
+l1_features = X_train.columns[l1_selector.get_support()]
+
+tree_selector = SelectFromModel(
+    RandomForestClassifier(n_estimators=200, random_state=42),
+    threshold="median",
+)
+X_train_tree = tree_selector.fit_transform(X_train, y_train)
+tree_features = X_train.columns[tree_selector.get_support()]
+
+# 6. Sequential selection; expensive for wide feature sets.
+sequential_selector = SequentialFeatureSelector(
+    base_model,
+    n_features_to_select=10,
+    direction="forward",
+    scoring="roc_auc",
+    cv=5,
+)
+X_train_sequential = sequential_selector.fit_transform(X_train, y_train)
+sequential_features = X_train.columns[sequential_selector.get_support()]
+
+# 7. Permutation importance on validation data after fitting a model.
+validation_model = RandomForestClassifier(n_estimators=200, random_state=42)
+validation_model.fit(X_train, y_train)
+importance = permutation_importance(
+    validation_model,
+    X_valid,
+    y_valid,
+    scoring="roc_auc",
+    n_repeats=10,
+    random_state=42,
+)
+permutation_scores = pd.Series(
+    importance.importances_mean,
+    index=X_valid.columns,
+).sort_values(ascending=False)
+```
+
+Use `f_regression` or `partial(mutual_info_regression, random_state=42)` for regression targets instead of classification scoring functions. `chi2` is another option for non-negative classification features. For one-hot encoded or transformed data, inspect `get_feature_names_out()` to map selected columns back to readable feature names.
+
+VIF is an optional diagnostic for numeric predictors and requires `statsmodels`:
+
+```python
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+
+vif = pd.Series(
+    [
+        variance_inflation_factor(X_train.to_numpy(), i)
+        for i in range(X_train.shape[1])
+    ],
+    index=X_train.columns,
+    name="VIF",
+)
+```
+
+In the correlation example, the intended operation is to inspect only the upper triangle of the correlation matrix. In production model training, put selectors in the estimator `Pipeline` so cross-validation fits them independently within each fold; persist the fitted selector with the model and monitor the resulting input/output feature schema.
+
 ### Production preprocessing pipeline example
 
 Replace `X`, `y`, and the feature column lists with the dataset's features and target. The pipeline learns imputers, scaler, and encoder from the training split only; unknown categories are safely ignored during transform.
@@ -160,56 +310,99 @@ The examples assume `df` is loaded and `numeric_columns` contains the numeric fe
 ```python
 import pandas as pd
 from scipy.stats import median_abs_deviation, zscore
+from sklearn.covariance import EllipticEnvelope
 from sklearn.ensemble import IsolationForest
+from sklearn.cluster import DBSCAN
 from sklearn.neighbors import LocalOutlierFactor
+from sklearn.svm import OneClassSVM
 
 # 1. Domain/business rule: set limits from valid subject-matter requirements.
 domain_flags = (df["age"] < 0) | (df["age"] > 120)
 
-# 2. IQR: univariate; robust to some extreme values.
-q1 = df[numeric_columns].quantile(0.25)
-q3 = df[numeric_columns].quantile(0.75)
+# 2. IQR: learn bounds from training data and flag held-out rows.
+q1 = X_train[numeric_columns].quantile(0.25)
+q3 = X_train[numeric_columns].quantile(0.75)
 iqr = q3 - q1
-iqr_flags = (df[numeric_columns] < q1 - 1.5 * iqr) | (
-    df[numeric_columns] > q3 + 1.5 * iqr
+lower_iqr = q1 - 1.5 * iqr
+upper_iqr = q3 + 1.5 * iqr
+iqr_flags = (X_test[numeric_columns] < lower_iqr) | (
+    X_test[numeric_columns] > upper_iqr
 )
 
-# 3. Z-score: use mainly for roughly symmetric distributions; threshold is a choice.
-z_scores = df[numeric_columns].apply(
-    lambda column: zscore(column, nan_policy="omit")
-)
+# 3. Z-score: fit mean/std on training data; most useful for near-normal features.
+train_mean = X_train[numeric_columns].mean()
+train_std = X_train[numeric_columns].std().replace(0, float("nan"))
+z_scores = (X_test[numeric_columns] - train_mean) / train_std
 zscore_flags = z_scores.abs() > 3
 
-# 4. Modified Z-score: median/MAD is less affected by extreme values.
-def modified_zscore_flags(column):
-    median = column.median()
-    mad = median_abs_deviation(column.dropna(), scale=1.0)
-    if mad == 0:
-        return pd.Series(False, index=column.index)
-    return (0.6745 * (column - median) / mad).abs() > 3.5
+# 4. Modified Z-score: median/MAD is more robust to extreme values.
+train_median = X_train[numeric_columns].median()
+train_mad = X_train[numeric_columns].apply(
+    lambda column: median_abs_deviation(column.dropna(), scale=1.0)
+).replace(0, float("nan"))
+modified_z_scores = 0.6745 * (X_test[numeric_columns] - train_median) / train_mad
+mad_flags = modified_z_scores.abs() > 3.5
 
-mad_flags = df[numeric_columns].apply(modified_zscore_flags)
-
-# 5. Percentile bounds: cap rather than remove; derive bounds from training data.
+# 5. Percentile bounds: fit on train; flag or cap test values consistently.
 lower = X_train[numeric_columns].quantile(0.01)
 upper = X_train[numeric_columns].quantile(0.99)
+percentile_flags = (X_test[numeric_columns] < lower) | (
+    X_test[numeric_columns] > upper
+)
 X_train_capped = X_train.copy()
 X_test_capped = X_test.copy()
 X_train_capped[numeric_columns] = X_train[numeric_columns].clip(lower, upper, axis=1)
 X_test_capped[numeric_columns] = X_test[numeric_columns].clip(lower, upper, axis=1)
 
-# 6. Isolation Forest: multivariate; contamination must be chosen for the use case.
+# 6. Isolation Forest: multivariate; contamination needs validation.
 isolation_forest = IsolationForest(contamination=0.02, random_state=42)
 isolation_forest.fit(X_train[numeric_columns])
 isolation_flags = isolation_forest.predict(X_test[numeric_columns]) == -1
 
-# 7. Local Outlier Factor: novelty=True supports scoring unseen test/production rows.
+# Scale features before distance/kernel/covariance-based methods.
+from sklearn.preprocessing import StandardScaler
+
+scaler = StandardScaler().fit(X_train[numeric_columns])
+X_train_scaled = scaler.transform(X_train[numeric_columns])
+X_test_scaled = scaler.transform(X_test[numeric_columns])
+
+# 7. Local Outlier Factor: novelty=True enables scoring unseen rows.
 lof = LocalOutlierFactor(n_neighbors=20, novelty=True, contamination=0.02)
-lof.fit(X_train[numeric_columns])
-lof_flags = lof.predict(X_test[numeric_columns]) == -1
+lof.fit(X_train_scaled)
+lof_flags = lof.predict(X_test_scaled) == -1
+
+# 8. One-Class SVM: useful for novelty detection; tune nu/gamma on validation data.
+one_class_svm = OneClassSVM(kernel="rbf", nu=0.02, gamma="scale")
+one_class_svm.fit(X_train_scaled)
+svm_flags = one_class_svm.predict(X_test_scaled) == -1
+
+# 9. Elliptic Envelope: assumes one dominant, approximately Gaussian cluster.
+elliptic = EllipticEnvelope(contamination=0.02, random_state=42)
+elliptic.fit(X_train_scaled)
+elliptic_flags = elliptic.predict(X_test_scaled) == -1
+
+# 10. DBSCAN: labels training-set noise as -1; eps must be tuned after scaling.
+dbscan = DBSCAN(eps=0.5, min_samples=5)
+dbscan_labels = dbscan.fit_predict(X_train_scaled)
+dbscan_train_flags = dbscan_labels == -1
+
+# Summarize flags without automatically deleting valid observations.
+outlier_summary = pd.DataFrame({
+    "iqr": iqr_flags.any(axis=1),
+    "zscore": zscore_flags.any(axis=1),
+    "modified_zscore": mad_flags.any(axis=1),
+    "percentile": percentile_flags.any(axis=1),
+    "isolation_forest": isolation_flags,
+    "local_outlier_factor": lof_flags,
+    "one_class_svm": svm_flags,
+    "elliptic_envelope": elliptic_flags,
+}, index=X_test.index)
+flag_counts = outlier_summary.sum().sort_values(ascending=False)
 ```
 
-In production, keep preprocessing and any learned detector in the versioned model pipeline, validate numeric input and missing-value handling, and monitor flag rates. Set `contamination` and thresholds using domain knowledge and validation data rather than copying the example values. Apply capping bounds learned from training data consistently at inference; do not silently drop flagged production records.
+For DBSCAN, use `dbscan_train_flags` only for the data used to fit it; standard DBSCAN does not provide a general `predict()` for unseen rows. For deployment-time novelty detection, use a detector with a supported prediction API, such as Isolation Forest, LOF with `novelty=True`, One-Class SVM, or Elliptic Envelope. Scale data for distance/kernel methods, and use Elliptic Envelope only when its distribution assumptions are reasonable.
+
+In production, keep scaling, thresholds, and learned detectors in a versioned pipeline, validate numeric input and missing-value handling, and monitor flag rates. Tune thresholds and `contamination` on validation data; do not copy example values blindly. Treat flags as review signals, and do not silently drop production records.
 
 For model workflows, put fitted preprocessing and the estimator in `sklearn.pipeline.Pipeline()` (and use `sklearn.compose.ColumnTransformer()` for different column types). Fit the pipeline on training data only, then use it to transform/evaluate held-out data; this helps prevent data leakage.
 
