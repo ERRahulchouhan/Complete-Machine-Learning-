@@ -1,0 +1,475 @@
+EDA TO MACHINE LEARNING – PYTHON METHODS CHEAT SHEET
+
+Purpose
+
+A practical checklist of common EDA, preprocessing, feature engineering,
+feature selection, model development, evaluation, deployment and
+monitoring methods, with Python library names and method syntax.
+
+Install commonly used packages
+
+pip install pandas numpy matplotlib seaborn scipy scikit-learn pip
+install xgboost lightgbm catboost imbalanced-learn category-encoders pip
+install shap optuna mlflow fastapi joblib
+
+1. READ THE DATA
+
+import pandas as pd import numpy as np
+
+CSV: pd.read_csv(“data.csv”) Excel: pd.read_excel(“data.xlsx”) JSON:
+pd.read_json(“data.json”) Parquet: pd.read_parquet(“data.parquet”) SQL:
+pd.read_sql(query, connection) Pickle: pd.read_pickle(“data.pkl”)
+
+2. SEPARATE NUMERICAL AND CATEGORICAL COLUMNS
+
+Numerical columns: num_cols =
+df.select_dtypes(include=np.number).columns
+
+Categorical columns: cat_cols = df.select_dtypes(include=[“object”,
+“category”, “bool”]).columns
+
+Integer: df.select_dtypes(include=[“int64”, “int32”]) Float:
+df.select_dtypes(include=[“float64”, “float32”]) Datetime:
+df.select_dtypes(include=[“datetime”])
+
+3. DATA QUICK CHECKS
+
+Shape: df.shape Total elements: df.size Number of rows: len(df) First
+rows: df.head() Last rows: df.tail() Random rows: df.sample(5) Info and
+dtypes: df.info() Summary stats: df.describe() All dtypes: df.dtypes
+Column names: df.columns Unique counts: df.nunique() Unique values:
+df[“column”].unique() Frequency: df[“column”].value_counts() Duplicate
+count: df.duplicated().sum() Memory usage: df.memory_usage(deep=True)
+
+4. MISSING VALUE ANALYSIS AND TREATMENT
+
+Detection: df.isnull().sum() df.isna().mean() * 100 df.notna().sum()
+
+Removal: df.dropna() df.dropna(axis=1) df.dropna(subset=[“column”])
+
+Pandas imputation: df[“age”].fillna(df[“age”].mean())
+df[“age”].fillna(df[“age”].median())
+df[“city”].fillna(df[“city”].mode()[0]) df.ffill() df.bfill()
+
+Scikit-learn imputation: from sklearn.impute import SimpleImputer,
+KNNImputer from sklearn.experimental import enable_iterative_imputer
+from sklearn.impute import IterativeImputer, MissingIndicator
+
+SimpleImputer(strategy=“mean”) SimpleImputer(strategy=“median”)
+SimpleImputer(strategy=“most_frequent”)
+SimpleImputer(strategy=“constant”, fill_value=0)
+KNNImputer(n_neighbors=5) IterativeImputer() MissingIndicator()
+
+Rule of thumb: - Mean: roughly symmetric numerical data without
+influential outliers. - Median: skewed data or data with influential
+outliers. - Mode / most_frequent: categorical values. - KNN or Iterative
+imputation: when relationships among features can help. - Add missing
+indicators when the fact that a value is missing may be informative. Fit
+imputers on training data only to avoid data leakage.
+
+5. DATA QUALITY CHECKS AND CLEANING
+
+Remove duplicates: df.drop_duplicates() Strip whitespace:
+df[“col”].str.strip() Lowercase: df[“col”].str.lower() Uppercase:
+df[“col”].str.upper() Replace values: df[“col”].replace({“old”: “new”})
+Remove punctuation: df[“col”].str.replace(r”[^\w\s]“,”“, regex=True)
+Remove special chars: df[”col”].str.replace(r”[^a-zA-Z0-9 ]“,”“,
+regex=True) Convert to numeric: pd.to_numeric(df[”col”],
+errors=”coerce”) Convert to datetime: pd.to_datetime(df[“date”],
+errors=“coerce”) Change dtype: df[“col”].astype(“category”) Rename
+columns: df.rename(columns={“old”: “new”}) Check allowed values:
+df[“col”].isin([“A”, “B”, “C”]) Drop columns:
+df.drop(columns=[“unneeded”]) Check ranges: df[“age”].between(0, 110)
+
+Also check inconsistent units, impossible values, spelling variations,
+leading/trailing spaces, mixed data types, invalid dates and constant
+columns.
+
+6. CATEGORICAL COLUMN ANALYSIS
+
+Frequency: df[“city”].value_counts() Relative frequency:
+df[“city”].value_counts(normalize=True) Unique values:
+df[“city”].unique() Cardinality: df[“city”].nunique() Cross-tabulation:
+pd.crosstab(df[“city”], df[“gender”]) Group counts:
+df.groupby(“city”).size() Grouped summary:
+df.groupby(“city”)[“sales”].mean()
+
+Plots: import seaborn as sns import matplotlib.pyplot as plt
+
+sns.countplot(data=df, x=“city”)
+df[“city”].value_counts().plot(kind=“bar”)
+df[“city”].value_counts().plot(kind=“pie”, autopct=“%1.1f%%”)
+pd.crosstab(df.city, df.gender).plot(kind=“bar”, stacked=True)
+
+Interpret: most common and rare categories, imbalance, unexpected
+labels, high cardinality and association with the target.
+
+7. NUMERICAL COLUMN ANALYSIS
+
+Mean: df[“age”].mean() Median: df[“age”].median() Mode: df[“age”].mode()
+Minimum / maximum: df[“age”].min(), df[“age”].max() Range:
+df[“age”].max() - df[“age”].min() Variance: df[“age”].var() Standard
+deviation: df[“age”].std() Percentile: df[“age”].quantile(0.90)
+Skewness: df[“age”].skew() Kurtosis: df[“age”].kurt()
+
+Plots: sns.histplot(data=df, x=“age”, kde=True) sns.kdeplot(data=df,
+x=“age”) sns.boxplot(data=df, x=“age”) sns.violinplot(data=df, x=“age”)
+sns.ecdfplot(data=df, x=“age”)
+
+Q-Q plot: from scipy import stats stats.probplot(df[“age”].dropna(),
+dist=“norm”, plot=plt)
+
+Distribution patterns to identify: normal, uniform, right-skewed,
+left-skewed, bimodal, multimodal, exponential and log-normal.
+
+8. OUTLIER DETECTION AND TREATMENT
+
+IQR: Q1 = df[“age”].quantile(0.25) Q3 = df[“age”].quantile(0.75) IQR =
+Q3 - Q1 lower = Q1 - 1.5 * IQR upper = Q3 + 1.5 * IQR outliers =
+df[(df[“age”] < lower) | (df[“age”] > upper)]
+
+Z-score: from scipy.stats import zscore z =
+np.abs(zscore(df[“age”].dropna())) outlier_mask = z > 3
+
+Other detection methods: - Modified Z-score (median absolute deviation /
+MAD) - Percentile thresholds - Box plot: sns.boxplot(x=df[“age”]) -
+Isolation Forest: IsolationForest() - Local Outlier Factor:
+LocalOutlierFactor() - DBSCAN(): density-based clustering -
+EllipticEnvelope(): robust covariance-based detection
+
+Treatment: - Investigate and correct data-entry errors. - Remove records
+only when justified: df[condition] - Cap values:
+df[“age”].clip(lower=lower, upper=upper) - Winsorize:
+scipy.stats.mstats.winsorize() - Transform:
+np.log1p(df[“positive_column”]) - Use RobustScaler() when robust scaling
+is appropriate.
+
+Do not automatically delete every outlier; some are valid and
+meaningful.
+
+9. BIVARIATE AND MULTIVARIATE ANALYSIS
+
+Numerical vs numerical: sns.scatterplot(data=df, x=“age”, y=“salary”)
+df[[“age”, “salary”]].corr(method=“pearson”)
+
+Categorical vs numerical: sns.boxplot(data=df, x=“gender”, y=“salary”)
+sns.violinplot(data=df, x=“gender”, y=“salary”)
+
+Categorical vs categorical: pd.crosstab(df[“gender”], df[“purchased”])
+sns.countplot(data=df, x=“gender”, hue=“purchased”)
+
+Correlation: df.corr(numeric_only=True) df.corr(method=“pearson”,
+numeric_only=True) df.corr(method=“spearman”, numeric_only=True)
+df.corr(method=“kendall”, numeric_only=True)
+sns.heatmap(df.corr(numeric_only=True), annot=True, cmap=“coolwarm”)
+
+Other plots: sns.pairplot(df) pd.plotting.scatter_matrix(df)
+
+Statistical tests: - Independent t-test: scipy.stats.ttest_ind(group1,
+group2) - Paired t-test: scipy.stats.ttest_rel(before, after) - ANOVA:
+scipy.stats.f_oneway(group1, group2, group3) - Mann-Whitney U:
+scipy.stats.mannwhitneyu(group1, group2) - Chi-square:
+scipy.stats.chi2_contingency(contingency_table) - Pearson correlation:
+scipy.stats.pearsonr(x, y) - Spearman correlation:
+scipy.stats.spearmanr(x, y) - Mutual information:
+sklearn.feature_selection.mutual_info_classif()
+
+Correlation does not prove causation. Check assumptions before
+interpreting statistical test results.
+
+10. ENCODING CATEGORICAL FEATURES
+
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder,
+OrdinalEncoder
+
+Label encoding: LabelEncoder() One-hot encoding:
+OneHotEncoder(handle_unknown=“ignore”) Dummy encoding:
+pd.get_dummies(df, columns=[“city”], drop_first=True) Ordinal encoding:
+OrdinalEncoder(categories=[[“low”, “medium”, “high”]])
+
+Additional encoders (category_encoders package): BinaryEncoder()
+TargetEncoder() CountEncoder() WOEEncoder() LeaveOneOutEncoder()
+CatBoostEncoder() HashingEncoder()
+
+Frequency encoding example: freq =
+df[“city”].value_counts(normalize=True) df[“city_frequency”] =
+df[“city”].map(freq)
+
+Use target-based encoders carefully: fit them within cross-validation or
+training folds to avoid target leakage. LabelEncoder is generally
+intended for target labels; use OrdinalEncoder for input feature
+columns.
+
+11. FEATURE SCALING
+
+from sklearn.preprocessing import ( StandardScaler, MinMaxScaler,
+RobustScaler, MaxAbsScaler, Normalizer, QuantileTransformer,
+PowerTransformer )
+
+Standardization: StandardScaler() Min-max scaling: MinMaxScaler() Robust
+scaling: RobustScaler() Max absolute scaling: MaxAbsScaler() Vector
+normalization: Normalizer() Quantile scaling: QuantileTransformer()
+Power transformation: PowerTransformer()
+
+Fit the scaler on training data only; use transform() on validation and
+test data. Tree-based models often do not require feature scaling.
+
+12. FEATURE TRANSFORMATION AND ENGINEERING
+
+Log: np.log1p(X) Square root: np.sqrt(X) Cube root: np.cbrt(X)
+Reciprocal: 1 / X (only when zero is handled) Box-Cox:
+scipy.stats.boxcox(X) (strictly positive data) Yeo-Johnson:
+PowerTransformer(method=“yeo-johnson”) Polynomial features:
+PolynomialFeatures(degree=2) Binning: pd.cut(df[“age”], bins=…) Quantile
+binning: pd.qcut(df[“age”], q=4)
+
+Date features: pd.to_datetime(df[“date”]) df[“year”] =
+df[“date”].dt.year df[“month”] = df[“date”].dt.month df[“day”] =
+df[“date”].dt.day df[“dayofweek”] = df[“date”].dt.dayofweek
+df[“quarter”] = df[“date”].dt.quarter
+
+Other feature engineering: - Lag features: series.shift(1) - Rolling
+mean: series.rolling(window=7).mean() - Rolling standard deviation:
+series.rolling(window=7).std() - Aggregation:
+df.groupby(“customer”)[“sales”].agg([“mean”, “sum”, “count”]) - Text:
+CountVectorizer(), TfidfVectorizer() - Interaction / polynomial:
+PolynomialFeatures(interaction_only=True)
+
+13. FEATURE SELECTION
+
+Filter methods: VarianceThreshold() SelectKBest(score_func=f_classif,
+k=10) SelectKBest(score_func=chi2, k=10) mutual_info_classif(X, y)
+mutual_info_regression(X, y) Correlation analysis: df.corr()
+
+Wrapper methods: RFE(estimator, n_features_to_select=10)
+RFECV(estimator, cv=5) SequentialFeatureSelector(estimator,
+direction=“forward”) SequentialFeatureSelector(estimator,
+direction=“backward”)
+
+Embedded methods: Lasso() ElasticNet()
+SelectFromModel(RandomForestClassifier()) Tree model
+feature_importances_
+
+Model interpretation: permutation_importance(model, X_test, y_test)
+shap.Explainer(model)
+
+Feature selection must be fitted using training data only, preferably
+inside a cross-validation pipeline.
+
+14. DIMENSIONALITY REDUCTION
+
+PCA: PCA(n_components=…) Truncated SVD: TruncatedSVD(n_components=…)
+Kernel PCA: KernelPCA() Linear Discriminant:
+LinearDiscriminantAnalysis() ICA: FastICA() t-SNE: TSNE() Isomap:
+Isomap() MDS: MDS() UMAP: umap.UMAP() (install umap-learn) Autoencoder:
+TensorFlow / Keras neural network
+
+PCA and SVD create transformed components; feature selection retains a
+subset of original features. Scale features before PCA when appropriate.
+LDA is supervised and has class-count constraints.
+
+15. TRAIN-TEST SPLIT AND CROSS-VALIDATION
+
+train_test_split(X, y, test_size=0.2, random_state=42)
+train_test_split(X, y, stratify=y, test_size=0.2, random_state=42)
+KFold(n_splits=5, shuffle=True, random_state=42)
+StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+RepeatedKFold() LeaveOneOut() GroupKFold() StratifiedGroupKFold()
+TimeSeriesSplit() cross_val_score(model, X, y, cv=5)
+cross_validate(model, X, y, cv=5)
+
+Use stratification for imbalanced classification, group splits when rows
+from the same entity must stay together, and time-based splits for
+temporal prediction. Do not randomly shuffle time series when that
+causes leakage.
+
+16. REGRESSION ALGORITHMS
+
+from sklearn.linear_model import ( LinearRegression, Ridge, Lasso,
+ElasticNet, BayesianRidge, HuberRegressor ) from sklearn.tree import
+DecisionTreeRegressor from sklearn.ensemble import (
+RandomForestRegressor, ExtraTreesRegressor, GradientBoostingRegressor,
+AdaBoostRegressor, HistGradientBoostingRegressor ) from
+sklearn.neighbors import KNeighborsRegressor from sklearn.svm import SVR
+
+Linear Regression: LinearRegression() Polynomial Regression:
+PolynomialFeatures() + LinearRegression() Ridge: Ridge() Lasso: Lasso()
+Elastic Net: ElasticNet() Decision Tree: DecisionTreeRegressor() Random
+Forest: RandomForestRegressor() Extra Trees: ExtraTreesRegressor()
+Gradient Boosting: GradientBoostingRegressor() AdaBoost:
+AdaBoostRegressor() Histogram Gradient: HistGradientBoostingRegressor()
+KNN: KNeighborsRegressor() Support Vector: SVR() Bayesian Ridge:
+BayesianRidge() Huber: HuberRegressor()
+
+External libraries: XGBoost: XGBRegressor() LightGBM: LGBMRegressor()
+CatBoost: CatBoostRegressor()
+
+17. CLASSIFICATION ALGORITHMS
+
+from sklearn.linear_model import LogisticRegression, SGDClassifier,
+Perceptron from sklearn.neighbors import KNeighborsClassifier from
+sklearn.naive_bayes import GaussianNB, MultinomialNB, BernoulliNB from
+sklearn.tree import DecisionTreeClassifier from sklearn.ensemble import
+( RandomForestClassifier, ExtraTreesClassifier,
+GradientBoostingClassifier, AdaBoostClassifier,
+HistGradientBoostingClassifier ) from sklearn.svm import SVC, LinearSVC
+from sklearn.discriminant_analysis import ( LinearDiscriminantAnalysis,
+QuadraticDiscriminantAnalysis ) from sklearn.neural_network import
+MLPClassifier
+
+Logistic Regression: LogisticRegression() KNN: KNeighborsClassifier()
+Gaussian Naive Bayes: GaussianNB() Multinomial Naive Bayes:
+MultinomialNB() Bernoulli Naive Bayes: BernoulliNB() Decision Tree:
+DecisionTreeClassifier() Random Forest: RandomForestClassifier() Extra
+Trees: ExtraTreesClassifier() SVM: SVC() Linear SVM: LinearSVC() LDA:
+LinearDiscriminantAnalysis() QDA: QuadraticDiscriminantAnalysis()
+AdaBoost: AdaBoostClassifier() Gradient Boosting:
+GradientBoostingClassifier() Histogram Gradient:
+HistGradientBoostingClassifier() SGD: SGDClassifier() Perceptron:
+Perceptron() Neural Network: MLPClassifier()
+
+External libraries: XGBoost: XGBClassifier() LightGBM: LGBMClassifier()
+CatBoost: CatBoostClassifier()
+
+18. UNSUPERVISED LEARNING
+
+Clustering: K-Means: KMeans() Agglomerative: AgglomerativeClustering()
+DBSCAN: DBSCAN() HDBSCAN: HDBSCAN() (install hdbscan or use supported
+package) OPTICS: OPTICS() Mean Shift: MeanShift() Gaussian Mixture:
+GaussianMixture() Spectral: SpectralClustering() BIRCH: Birch() Affinity
+Propagation: AffinityPropagation()
+
+Association rules (mlxtend): apriori() fpgrowth() association_rules()
+
+Anomaly detection: IsolationForest() LocalOutlierFactor() OneClassSVM()
+EllipticEnvelope()
+
+19. ENSEMBLE LEARNING
+
+BaggingClassifier() / BaggingRegressor() RandomForestClassifier() /
+RandomForestRegressor() AdaBoostClassifier() / AdaBoostRegressor()
+GradientBoostingClassifier() / GradientBoostingRegressor()
+VotingClassifier() / VotingRegressor() StackingClassifier() /
+StackingRegressor() HistGradientBoostingClassifier() /
+HistGradientBoostingRegressor() XGBClassifier() / XGBRegressor()
+LGBMClassifier() / LGBMRegressor() CatBoostClassifier() /
+CatBoostRegressor()
+
+20. HYPERPARAMETER TUNING
+
+GridSearchCV(model, param_grid, cv=5) RandomizedSearchCV(model,
+param_distributions, n_iter=50, cv=5) HalvingGridSearchCV(model,
+param_grid, cv=5) HalvingRandomSearchCV(model, param_distributions,
+cv=5) Optuna: optuna.create_study(), study.optimize() Bayesian search:
+BayesSearchCV() from scikit-optimize Hyperopt: fmin()
+
+21. MODEL EVALUATION
+
+Regression: mean_absolute_error(y_true, y_pred)
+mean_squared_error(y_true, y_pred) root_mean_squared_error(y_true,
+y_pred) # recent scikit-learn versions r2_score(y_true, y_pred)
+explained_variance_score(y_true, y_pred)
+mean_absolute_percentage_error(y_true, y_pred)
+median_absolute_error(y_true, y_pred)
+
+Classification: accuracy_score(y_true, y_pred) precision_score(y_true,
+y_pred) recall_score(y_true, y_pred) f1_score(y_true, y_pred)
+confusion_matrix(y_true, y_pred) classification_report(y_true, y_pred)
+roc_auc_score(y_true, y_score) roc_curve(y_true, y_score)
+precision_recall_curve(y_true, y_score) average_precision_score(y_true,
+y_score) log_loss(y_true, y_probability) matthews_corrcoef(y_true,
+y_pred) cohen_kappa_score(y_true, y_pred)
+balanced_accuracy_score(y_true, y_pred)
+
+Clustering: silhouette_score(X, labels) davies_bouldin_score(X, labels)
+calinski_harabasz_score(X, labels) adjusted_rand_score(y_true, labels)
+normalized_mutual_info_score(y_true, labels)
+
+22. IMBALANCED DATA HANDLING
+
+RandomOverSampler() RandomUnderSampler() SMOTE() SMOTETomek() SMOTEENN()
+ADASYN() Class weights: class_weight=“balanced” Threshold tuning: choose
+a decision threshold using validation data
+
+These samplers are available in imbalanced-learn. Apply resampling only
+to training folds, not to validation or test data. Use
+imblearn.pipeline.Pipeline when combining samplers with
+cross-validation.
+
+23. MODEL DIAGNOSTICS AND ERROR ANALYSIS
+
+Residuals: y_true - y_pred Residual plot: sns.residplot(x=y_pred,
+y=residuals) Learning curve: learning_curve(model, X, y, cv=5)
+Validation curve: validation_curve(model, X, y, param_name, param_range)
+Calibration curve: calibration_curve(y_true, y_probability) Error
+segmentation: compare errors across important customer or data groups
+Also inspect bias/variance, overfitting, underfitting, threshold choice,
+prediction errors and feature importance.
+
+24. DEPLOYMENT AND MONITORING
+
+Save model: joblib.dump(model, “model.joblib”) Load model:
+joblib.load(“model.joblib”) Pickle: pickle.dump(model, file) API:
+FastAPI() Web app: Flask() Experiment track: mlflow.log_params() Log
+model: mlflow.sklearn.log_model() Containers: Docker Orchestration:
+Kubernetes
+
+Monitoring concepts/tools: - Data quality and schema validation - Data
+drift and prediction drift - Concept drift and performance monitoring -
+Evidently AI - Prometheus and Grafana - Model versioning and
+retraining - A/B testing, shadow deployment and canary deployment
+
+25. RECOMMENDED END-TO-END SCIKIT-LEARN STRUCTURE
+
+from sklearn.compose import ColumnTransformer from sklearn.pipeline
+import Pipeline from sklearn.impute import SimpleImputer from
+sklearn.preprocessing import OneHotEncoder, StandardScaler from
+sklearn.model_selection import train_test_split from sklearn.ensemble
+import RandomForestClassifier from sklearn.metrics import
+classification_report
+
+X = df.drop(columns=[“target”]) y = df[“target”]
+
+num_cols = X.select_dtypes(include=np.number).columns cat_cols =
+X.select_dtypes(include=[“object”, “category”]).columns
+
+numeric_pipeline = Pipeline(steps=[ (“imputer”,
+SimpleImputer(strategy=“median”)), (“scaler”, StandardScaler())])
+
+categorical_pipeline = Pipeline(steps=[ (“imputer”,
+SimpleImputer(strategy=“most_frequent”)), (“encoder”,
+OneHotEncoder(handle_unknown=“ignore”))])
+
+preprocessor = ColumnTransformer(transformers=[ (“num”,
+numeric_pipeline, num_cols), (“cat”, categorical_pipeline, cat_cols)])
+
+model_pipeline = Pipeline(steps=[ (“preprocessor”, preprocessor),
+(“model”, RandomForestClassifier(random_state=42))])
+
+X_train, X_test, y_train, y_test = train_test_split( X, y,
+test_size=0.2, stratify=y, random_state=42 )
+
+model_pipeline.fit(X_train, y_train) predictions =
+model_pipeline.predict(X_test) print(classification_report(y_test,
+predictions))
+
+This pipeline keeps preprocessing inside the model workflow and learns
+imputation, scaling and encoding from training data only.
+
+IMPORTANT PRACTICAL NOTES
+
+1.  Split data before fitting preprocessing steps to prevent data
+    leakage.
+2.  Use Pipeline and ColumnTransformer for reproducible preprocessing.
+3.  Do not remove outliers without understanding whether they are errors
+    or legitimate observations.
+4.  Do not use accuracy alone for imbalanced classification.
+5.  Use a baseline model before complex models.
+6.  Choose metrics based on the business objective.
+7.  Use time-aware validation for time-dependent data.
+8.  PCA is optional; it is not required for every ML project.
+9.  Some methods require extra packages; install the relevant library.
+10. Check your installed scikit-learn version because some API names and
+    availability can vary by version.
+
+END OF CHEAT SHEET
