@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EDA Steps: Methods and Production Use</title>
+<style>
+:root{--bg:#f3efe6;--sf:#fbf8f1;--tx:#34383f;--mu:#6b7078;--bd:#ded8c9;--ac:#4a7a8c;--y:#3f7a56;--w:#9a7424;--n:#a2594f;--hl:#e6efe9}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1e2329;--sf:#262c33;--tx:#cfd4da;--mu:#8e969f;--bd:#363e47;--ac:#7fb0c2;--y:#7fbf97;--w:#d2b36a;--n:#d68c82;--hl:#2d3a36}}
+:root[data-theme="dark"]{--bg:#1e2329;--sf:#262c33;--tx:#cfd4da;--mu:#8e969f;--bd:#363e47;--ac:#7fb0c2;--y:#7fbf97;--w:#d2b36a;--n:#d68c82;--hl:#2d3a36}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:70px}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.65 Georgia,"Times New Roman",serif;padding:0 16px 60px}
+.wrap{max-width:900px;margin:0 auto}
+header{padding:34px 0 12px}
+h1{font-size:1.9rem;margin:0 0 6px;font-weight:600;letter-spacing:.2px}
+.sub{color:var(--mu);margin:0 0 16px;font-family:system-ui,sans-serif;font-size:.95rem}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0;border-bottom:1px solid var(--bd);display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-family:system-ui,sans-serif}
+input{flex:1;min-width:180px;padding:8px 12px;border:1px solid var(--bd);border-radius:8px;background:var(--sf);color:var(--tx);font:inherit;font-size:.92rem}
+button{padding:7px 12px;border:1px solid var(--bd);border-radius:8px;background:var(--sf);color:var(--tx);font:inherit;font-size:.85rem;cursor:pointer}
+button[aria-pressed="true"]{background:var(--ac);color:var(--bg);border-color:var(--ac)}
+:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.rule{background:var(--sf);border:1px solid var(--bd);border-left:4px solid var(--ac);border-radius:8px;padding:12px 16px;margin:18px 0;font-size:.95rem}
+nav{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px;font-family:system-ui,sans-serif}
+nav a{font-size:.8rem;color:var(--ac);text-decoration:none;border:1px solid var(--bd);border-radius:14px;padding:2px 10px;background:var(--sf)}
+section{margin:30px 0}
+h2{font-size:1.25rem;margin:0 0 4px;font-weight:600}
+h3{font-size:.95rem;margin:14px 0 4px;color:var(--mu);font-weight:600;font-family:system-ui,sans-serif}
+.note{color:var(--mu);font-size:.9rem;margin:0 0 8px}
+.tb{overflow-x:auto;border:1px solid var(--bd);border-radius:10px;background:var(--sf)}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--bd);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{font-family:system-ui,sans-serif;font-size:.8rem;color:var(--mu);font-weight:600}
+td:first-child{font-family:ui-monospace,Consolas,monospace;font-size:.86rem;width:46%;word-break:break-word}
+td:nth-child(2){white-space:nowrap;font-family:system-ui,sans-serif;font-size:.85rem;width:1%}
+.y{color:var(--y)}.w{color:var(--w)}.n{color:var(--n)}
+.leg{display:flex;gap:16px;flex-wrap:wrap;font-family:system-ui,sans-serif;font-size:.88rem;margin:10px 0}
+pre{background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:14px;overflow-x:auto;font-size:.82rem;line-height:1.5;font-family:ui-monospace,Consolas,monospace}
+.hide{display:none}
+footer{color:var(--mu);font-size:.85rem;margin-top:30px;font-family:system-ui,sans-serif}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<h1>EDA Steps: Methods and Production Use</h1>
+<p class="sub">Every step from your EDA file, with the method names and whether each one is used in production.</p>
+</header>
+<div class="bar">
+<input id="q" type="search" placeholder="Search a method, e.g. KNNImputer" aria-label="Search methods">
+<button data-f="all" aria-pressed="true">All</button>
+<button data-f="y" aria-pressed="false">Production</button>
+<button data-f="w" aria-pressed="false">Use with care</button>
+<button data-f="n" aria-pressed="false">Notebook only</button>
+<button id="th" aria-label="Switch theme">Theme</button>
+</div>
+<div class="leg"><span class="y">✔ Used in production</span><span class="w">▲ Use with care</span><span class="n">✖ Notebook or exploration only</span></div>
+<div class="rule"><b>Golden rule:</b> any step that learns from data (imputer, scaler, encoder, selector, PCA) is fit on <b>train data only</b>, placed inside a <code>Pipeline</code>, and saved with <code>joblib</code>. The same object then transforms new data when serving.</div>
+<nav id="nav"></nav>
+<main id="app"></main>
+
+<section id="code">
+<h2>How these steps look in production</h2>
+<pre>from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder, PowerTransformer
+from sklearn.decomposition import PCA
+import joblib
+
+num_pipe = Pipeline([
+    ("impute", SimpleImputer(strategy="median", add_indicator=True)),  # step 4
+    ("transform", PowerTransformer()),                                 # step 12
+    ("scale", StandardScaler()),                                       # step 11
+])
+cat_pipe = Pipeline([
+    ("impute", SimpleImputer(strategy="most_frequent")),               # step 4
+    ("encode", OneHotEncoder(handle_unknown="ignore")),                # step 10
+])
+pre = ColumnTransformer([("num", num_pipe, num_cols),
+                         ("cat", cat_pipe, cat_cols)])
+
+model = Pipeline([("pre", pre),
+                  ("pca", PCA(n_components=0.95)),                     # step 14
+                  ("clf", clf)])                                       # step 15
+
+model.fit(X_train, y_train)          # fit on train only
+joblib.dump(model, "model.joblib")   # same object used for serving</pre>
+<p class="note">Steps 3, 6, 7 and the plots in 8 and 9 are mostly notebook work. Steps 4, 5, 10 to 15 become Pipeline code. Step 5 also gets automated validation, and the stats from steps 6 and 7 are saved as a baseline for drift monitoring.</p>
+</section>
+<footer>Tree models (Random Forest, XGBoost, LightGBM) need no scaling. XGBoost, LightGBM, CatBoost and HistGradientBoosting handle NaN natively.</footer>
+</div>
+
+<script>
+// Format: "method|status|note"  status: y, w, n
+var D=[
+["1. Read the data","",[
+"pd.read_csv()|w|Fine, but set dtype= explicitly",
+"pd.read_parquet()|y|Best format: fast, keeps dtypes",
+"pd.read_sql(), pd.read_sql_query()|y|Main source in companies",
+"spark.read, dask.read_csv, polars.scan_csv|y|Big data",
+"pd.read_feather(), pd.read_orc()|y|Fast internal formats",
+"pd.read_json()|w|APIs and logs",
+"pd.read_excel()|n|Manual files only",
+"pd.read_html(), pd.read_clipboard()|n|Practice only",
+"pd.read_pickle()|n|Unsafe and version dependent"]],
+["2. Create categorical and numerical columns","",[
+"df.select_dtypes(include='number' / 'object')|w|OK in training code",
+"make_column_selector()|y|Works inside ColumnTransformer",
+"df.dtypes, df.columns, df[col].nunique()|y|Schema and cardinality checks",
+"Manual lists num_cols, cat_cols|y|Best: keep them in a config file"]],
+["3. Data quick checks","",[
+"df.shape, len(df), df.size|y|Row and column assertions, logging",
+"df.dtypes, df.columns, df.ndim|y|Schema checks",
+"df.head(), df.tail(), df.sample()|n|Notebook only",
+"df.info()|n|Notebook only",
+"df.memory_usage()|w|Optimization",
+"df.describe(), df.nunique()|w|Save as training baseline for drift"]],
+["4. Missing value analysis","Rule from your file: outliers present → median, no outliers → mean, specific neighbors → KNNImputer.",[
+"df.isnull().sum(), df.isna().mean()|y|Validation and monitoring",
+"missingno.matrix / bar / heatmap|n|Visual only",
+"SimpleImputer(strategy='mean')|y|Inside Pipeline, no outliers",
+"SimpleImputer(strategy='median')|y|Most common, safe with outliers",
+"SimpleImputer(strategy='most_frequent')|y|Categorical columns",
+"SimpleImputer(strategy='constant', fill_value=...)|y|Fixed value",
+"SimpleImputer(add_indicator=True), MissingIndicator|y|Adds a 'was missing' flag",
+"KNNImputer(n_neighbors=5)|w|Slow on big data, scale first",
+"IterativeImputer (MICE)|w|Slow, hard to serve",
+"df.fillna(df.mean())|n|On the full dataset it leaks test data",
+"df.ffill(), df.bfill(), df.interpolate()|w|Time series only",
+"df.dropna()|w|Training only, you cannot drop a row at inference",
+"Native NaN in XGBoost, LightGBM, CatBoost|y|No imputation needed"]],
+["5. Data quality checks and cleaning","",[
+"df.duplicated(), df.drop_duplicates()|y|",
+"df[col].str.replace(regex), .str.strip(), .str.lower()|y|Remove punctuation and spaces",
+"pd.to_numeric(errors='coerce')|y|Numeric column with text values",
+"df.astype(), pd.to_datetime()|y|Fix types",
+"df.replace(), df.map(), df.apply()|y|apply is slow, prefer vectorized code",
+"df[col].unique(), value_counts()|n|Finding the problem is a notebook task",
+"Great Expectations, Pandera, Pydantic, TFDV, Deepchecks|y|Automated validation, best practice"]],
+["6. Categorical column analysis","Frequency table, relative frequency, bar chart, pie chart.",[
+"value_counts()|w|Cardinality checks",
+"value_counts(normalize=True)|y|Drift monitoring (PSI)",
+"sns.countplot(), df[col].plot(kind='bar')|n|Notebook only",
+"plt.pie(), df[col].plot.pie()|n|Notebook only",
+"pd.crosstab()|w|",
+"mode(), nunique(), unique()|y|"]],
+["7. Numerical column analysis","Statistical summary, histogram, distribution.",[
+"df.describe()|w|Save as baseline stats",
+"mean, median, mode, std, var, min, max, quantile|y|Baselines and clip limits",
+"skew(), kurt()|w|Decide the transformation",
+"plt.hist(), sns.histplot(), sns.kdeplot()|n|Notebook only",
+"sns.distplot()|n|Deprecated",
+"scipy.stats.shapiro, normaltest, kstest|w|Normality tests",
+"scipy.stats.probplot (Q-Q plot)|n|Notebook only"]],
+["8. Outlier analysis","",[
+"sns.boxplot(), df.boxplot()|n|Notebook only",
+"IQR method: quantile(0.25), quantile(0.75)|y|Detect",
+"scipy.stats.zscore()|y|Detect",
+"Modified Z-score (MAD)|w|Detect",
+"IsolationForest|y|Anomaly detection model",
+"LocalOutlierFactor|w|Slow on large data",
+"EllipticEnvelope, OneClassSVM, DBSCAN|w|Rarely used",
+"df.clip(lower, upper) with limits from train|y|Best treatment",
+"np.where() cap, np.log1p|y|Treat",
+"scipy.stats.mstats.winsorize|w|Training analysis",
+"Remove outlier rows|w|Training only, never at inference"]],
+["9. Bivariate and multivariate analysis","",[
+"df.corr(method='pearson' / 'spearman' / 'kendall')|w|Drop correlated features",
+"sns.heatmap(df.corr())|n|Notebook only",
+"sns.scatterplot, pairplot, jointplot|n|Notebook only",
+"sns.boxplot(x=cat, y=num), violinplot, barplot|n|Notebook only",
+"groupby().agg(), pivot_table(), pd.crosstab()|y|Also creates group-by features",
+"scipy.stats.pearsonr, spearmanr|w|",
+"chi2_contingency (cat vs cat)|w|",
+"ttest_ind, f_oneway, mannwhitneyu, kruskal|w|Num vs cat, training analysis",
+"statsmodels variance_inflation_factor (VIF)|y|Multicollinearity in training",
+"mutual_info_classif / mutual_info_regression|y|"]],
+["10. Encoding","Convert categorical to numerical.",[
+"OneHotEncoder(handle_unknown='ignore')|y|Low cardinality",
+"OrdinalEncoder(handle_unknown='use_encoded_value')|y|Ordered categories, tree models",
+"LabelEncoder|w|For the target column only, not input features",
+"pd.get_dummies()|n|Train and serving columns can mismatch",
+"TargetEncoder (sklearn 1.3+)|y|High cardinality, uses cross-fitting",
+"CountEncoder, BinaryEncoder, HashingEncoder, WOEEncoder, CatBoostEncoder|w|category_encoders, depends on the case",
+"FeatureHasher|y|Very high cardinality",
+"df[col].map({...})|w|Manual mapping must be saved",
+"Embedding layers|y|Deep learning",
+"Native categorical in LightGBM, CatBoost|y|"]],
+["11. Scaling","Standardization and normalization.",[
+"StandardScaler|y|Default for linear, SVM, KNN, NN, PCA",
+"MinMaxScaler|y|Neural networks, image data",
+"RobustScaler|y|Data with outliers",
+"MaxAbsScaler|y|Sparse data",
+"Normalizer (L1 / L2, per row)|w|Text and vector data",
+"scipy.stats.zscore|n|Does not save mean and std for serving"]],
+["12. Transformation (optional)","",[
+"np.log, np.log1p, np.sqrt, np.square|y|Wrap with FunctionTransformer",
+"PowerTransformer(yeo-johnson / box-cox)|y|",
+"QuantileTransformer|y|",
+"scipy.stats.boxcox|w|You must save the lambda value",
+"KBinsDiscretizer, pd.cut, pd.qcut|w|",
+"Binarizer|y|",
+"PolynomialFeatures|w|Feature count grows fast",
+"FunctionTransformer|y|Makes any custom function part of the Pipeline"]],
+["13. Feature selection","Done once at training. Production keeps only the final list of selected features.",[
+"VarianceThreshold|y|",
+"SelectKBest with chi2, f_classif, f_regression, mutual_info|y|",
+"SelectPercentile|y|",
+"SelectFromModel (Lasso, tree importance)|y|",
+"Lasso, ElasticNet coefficients|y|",
+"model.feature_importances_|y|",
+"permutation_importance|y|",
+"SHAP values|y|Also for explanation",
+"Correlation filter, VIF filter|y|",
+"RFE, RFECV|w|Slow, training time only",
+"Boruta (BorutaPy)|w|",
+"SequentialFeatureSelector|n|Too slow"]],
+["14. Dimension reduction","",[
+"PCA (check explained_variance_ratio_)|y|Scale first",
+"IncrementalPCA|y|Large data",
+"TruncatedSVD|y|Sparse data and text (TF-IDF, LSA)",
+"LinearDiscriminantAnalysis (LDA)|y|Supervised reduction",
+"Autoencoders|y|Deep learning cases",
+"KernelPCA, SparsePCA, NMF, FactorAnalysis|w|",
+"UMAP|w|Visualization, sometimes features",
+"GaussianRandomProjection|w|",
+"np.linalg.svd, scipy.linalg.svd|n|Learning only",
+"TSNE|n|Visualization only, cannot transform new data"]],
+["15. Develop the ML model","Your file leaves this step empty. These are the common methods.",[
+"train_test_split(stratify=y), KFold, StratifiedKFold, GroupKFold, TimeSeriesSplit|y|Splitting",
+"Pipeline, ColumnTransformer, make_pipeline|y|Most important in production",
+"LinearRegression, Ridge, Lasso, ElasticNet, LogisticRegression|y|Linear",
+"DecisionTree, RandomForest|y|Trees",
+"XGBoost, LightGBM, CatBoost, HistGradientBoosting, GradientBoosting|y|Best for tabular data",
+"AdaBoost|w|",
+"KNN, SVC, SVR, NaiveBayes|w|KNN and SVM are slow on large data",
+"KMeans, HDBSCAN, GaussianMixture|y|Clustering",
+"DBSCAN, AgglomerativeClustering|w|Clustering",
+"Optuna|y|Most common tuner",
+"GridSearchCV, RandomizedSearchCV|y|Tuning",
+"cross_val_score, cross_validate|y|Validation",
+"accuracy, precision, recall, f1, roc_auc, confusion_matrix, MSE, MAE, r2|y|Metrics",
+"joblib.dump / load, ONNX, MLflow|y|Saving. pickle is use-with-care"]]
+];
+var S={y:"✔ Production",w:"▲ With care",n:"✖ Notebook"};
+var app=document.getElementById("app"),nav=document.getElementById("nav");
+var h="",nv="";
+D.forEach(function(s,i){
+ nv+='<a href="#s'+(i+1)+'">'+s[0].replace(/^(\d+)\.\s*/,"$1 ")+'</a>';
+ h+='<section id="s'+(i+1)+'"><h2>'+s[0]+'</h2>'+(s[1]?'<p class="note">'+s[1]+'</p>':'')+
+ '<div class="tb"><table><thead><tr><th>Method</th><th>Production</th><th>Note</th></tr></thead><tbody>';
+ s[2].forEach(function(r){var p=r.split("|");
+  h+='<tr data-s="'+p[1]+'"><td>'+p[0].replace(/</g,"&lt;")+'</td><td class="'+p[1]+'">'+S[p[1]]+'</td><td>'+p[2]+'</td></tr>';});
+ h+='</tbody></table></div></section>';
+});
+app.innerHTML=h;nav.innerHTML=nv;
+var f="all",q=document.getElementById("q");
+function apply(){
+ var t=q.value.toLowerCase();
+ document.querySelectorAll("tbody tr").forEach(function(r){
+  var ok=(f==="all"||r.dataset.s===f)&&(!t||r.textContent.toLowerCase().indexOf(t)>-1);
+  r.classList.toggle("hide",!ok);});
+ document.querySelectorAll("#app section").forEach(function(s){
+  s.classList.toggle("hide",!s.querySelector("tbody tr:not(.hide)"));});
+}
+q.addEventListener("input",apply);
+document.querySelectorAll("button[data-f]").forEach(function(b){
+ b.addEventListener("click",function(){
+  f=b.dataset.f;
+  document.querySelectorAll("button[data-f]").forEach(function(x){x.setAttribute("aria-pressed",x===b)});
+  apply();});});
+document.getElementById("th").addEventListener("click",function(){
+ var r=document.documentElement,d=r.dataset.theme||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");
+ r.dataset.theme=d==="dark"?"light":"dark";});
+</script>
+</body>
+</html>

@@ -1,0 +1,2314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light dark">
+<title>End-to-End Machine Learning Workflow — EDA to Production</title>
+<style>
+:root{--fs:17px;--bg:#f2efe8;--card:#faf8f3;--ink:#2a2e35;--muted:#5b6370;--accent:#2d5a9e;--border:#dcd6c8;--code:#262b33;--codeink:#d9dee6;--soft:#e8eef7;--h2:#24467a;--thbg:#ece8dd;--inline:#e9e5da;--nbg:#f6ecc8;--nbd:#e3d196;--hd1:#2c4468;--hd2:#3d6199;--hdink:#f1f4fa;--hdsub:#d3ddef;--c-com:#8b95a5;--c-str:#9fd0a4;--c-kw:#c3a6e8;--c-num:#e8b58a;--btn:#ece8dd;--ok:#2f7d4f;--warn:#9a6a14}
+@media (prefers-color-scheme:dark){:root:not([data-theme]){--bg:#15171c;--card:#1d2026;--ink:#d3d7de;--muted:#9aa3b0;--accent:#8fb4ee;--border:#2d323b;--code:#101216;--codeink:#cdd4de;--soft:#232a36;--h2:#a9c4f0;--thbg:#262a32;--inline:#2a2f38;--nbg:#2e2a1a;--nbd:#50472a;--hd1:#1b2740;--hd2:#24385c;--hdink:#e6ebf5;--hdsub:#aebcd6;--btn:#262a32;--ok:#7cc79a;--warn:#e0b45c}}
+:root[data-theme="dark"]{--bg:#15171c;--card:#1d2026;--ink:#d3d7de;--muted:#9aa3b0;--accent:#8fb4ee;--border:#2d323b;--code:#101216;--codeink:#cdd4de;--soft:#232a36;--h2:#a9c4f0;--thbg:#262a32;--inline:#2a2f38;--nbg:#2e2a1a;--nbd:#50472a;--hd1:#1b2740;--hd2:#24385c;--hdink:#e6ebf5;--hdsub:#aebcd6;--btn:#262a32;--ok:#7cc79a;--warn:#e0b45c}
+:root[data-theme="sepia"]{--bg:#ece0c6;--card:#f4ead2;--ink:#3e362a;--muted:#6b5f4b;--accent:#8a4f1d;--border:#d6c7a4;--code:#3b3427;--codeink:#eadfc8;--soft:#eadcb8;--h2:#6e3f14;--thbg:#e6d7b2;--inline:#e5d5ae;--nbg:#f1dfaa;--nbd:#d5bd7a;--hd1:#5a4326;--hd2:#7a5a33;--hdink:#fbf3e0;--hdsub:#ecdcb8;--btn:#e6d7b2;--ok:#3c7a4a;--warn:#8f5a10}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
+body{margin:0;background:var(--bg);color:var(--ink);font:var(--fs)/1.75 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased;transition:background .25s,color .25s}
+.toolbar{position:sticky;top:0;z-index:30;display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap;padding:8px 14px;background:var(--card);border-bottom:1px solid var(--border)}
+.toolbar .lbl{margin-right:auto;font-size:.82rem;color:var(--muted)}
+.toolbar button,.toolbar a.btn{font:inherit;font-size:.82rem;line-height:1;padding:7px 11px;border-radius:8px;border:1px solid var(--border);background:var(--btn);color:var(--ink);cursor:pointer;text-decoration:none}
+.toolbar button:hover,.toolbar a.btn:hover{border-color:var(--accent)}
+#progress{position:absolute;left:0;bottom:-1px;height:3px;width:0;background:var(--accent);opacity:.8}
+header{background:linear-gradient(120deg,var(--hd1),var(--hd2));color:var(--hdink);padding:44px 22px}
+header .wrap,main{max-width:1000px;margin:auto}
+h1{font-size:clamp(1.9rem,4vw,2.7rem);line-height:1.2;margin:0 0 12px;font-weight:700}
+header p{max-width:820px;color:var(--hdsub);margin:0}
+main{padding:24px 18px 70px}
+.notice{background:var(--nbg);border:1px solid var(--nbd);padding:16px 18px;border-radius:12px;margin:18px 0 24px}
+nav{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin:20px 0}
+nav strong{display:block;margin:0 0 6px}
+nav .grp{font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:12px 0 2px}
+nav a{color:var(--accent);text-decoration:none;display:inline-block;margin:3px 14px 3px 0;font-size:.95em}
+nav a:hover{text-decoration:underline}
+a:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+section{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px;margin:18px 0;scroll-margin-top:64px}
+h2{font-size:1.45rem;line-height:1.3;margin:0 0 14px;color:var(--h2)}
+h3{font-size:1.08rem;margin:24px 0 8px}
+p{margin:8px 0 12px;max-width:78ch}
+.muted{color:var(--muted)}
+ul,ol{padding-left:24px;max-width:80ch}
+li{margin:5px 0}
+.tag{display:inline-block;vertical-align:middle;margin-left:8px;padding:2px 9px;border-radius:999px;font-size:.62em;font-weight:600;letter-spacing:.03em;background:var(--soft);color:var(--accent);border:1px solid var(--border)}
+.codewrap{position:relative;margin:10px 0 16px}
+pre{background:var(--code);color:var(--codeink);padding:16px;border-radius:10px;overflow:auto;white-space:pre;margin:10px 0 16px;font:.8rem/1.6 ui-monospace,SFMono-Regular,Consolas,Monaco,monospace;tab-size:4}
+.codewrap pre{margin:0}
+.copy{position:absolute;top:8px;right:8px;font:inherit;font-size:.72rem;padding:4px 9px;border-radius:6px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.07);color:var(--codeink);cursor:pointer;opacity:.0;transition:opacity .15s}
+.codewrap:hover .copy,.copy:focus-visible{opacity:1}
+@media (hover:none){.copy{opacity:1}}
+.tk-c{color:var(--c-com);font-style:italic}.tk-s{color:var(--c-str)}.tk-k{color:var(--c-kw)}.tk-n{color:var(--c-num)}
+code{font-family:ui-monospace,SFMono-Regular,Consolas,Monaco,monospace}
+.inline{background:var(--inline);padding:2px 6px;border-radius:4px;font-size:.88em}
+.tw{overflow-x:auto;margin:12px 0}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:.93em}
+th,td{border:1px solid var(--border);padding:9px 11px;text-align:left;vertical-align:top}
+th{background:var(--thbg)}
+.tip{border-left:4px solid var(--accent);background:var(--soft);padding:12px 15px;margin:14px 0;border-radius:6px;max-width:82ch}
+.warn{border-left:4px solid var(--warn);background:var(--nbg);padding:12px 15px;margin:14px 0;border-radius:6px;max-width:82ch}
+.flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0 16px}
+.flow span{background:var(--soft);border:1px solid var(--border);padding:6px 13px;border-radius:999px;font-size:.88em}
+.flow i{color:var(--muted);font-style:normal}
+details{border:1px solid var(--border);border-radius:9px;padding:10px 14px;margin:10px 0}
+summary{cursor:pointer;font-weight:650;color:var(--h2)}
+footer{max-width:1000px;margin:auto;padding:0 18px 36px;color:var(--muted);font-size:.9rem}
+#top{position:fixed;right:16px;bottom:16px;z-index:25;display:none;font:inherit;font-size:.82rem;padding:9px 13px;border-radius:999px;border:1px solid var(--border);background:var(--card);color:var(--ink);cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+@media (max-width:640px){section{padding:18px 15px}main{padding:16px 10px 60px}.toolbar .lbl{display:none}}
+@media print{:root,:root[data-theme]{--bg:#fff;--card:#fff;--ink:#111;--muted:#444;--accent:#17356f;--border:#ccc;--code:#f3f3f3;--codeink:#111;--c-com:#555;--c-str:#175a2b;--c-kw:#5a2a8a;--c-num:#8a3b00;--hd1:#17356f;--hd2:#17356f;--hdink:#fff;--hdsub:#e4ebff;--soft:#eef2fa;--h2:#17356f;--thbg:#eee;--inline:#eee;--nbg:#fff8df;--nbd:#e0cf8a}.toolbar,#top,.copy{display:none!important}header{print-color-adjust:exact;-webkit-print-color-adjust:exact}section,nav{break-inside:avoid;box-shadow:none}pre{white-space:pre-wrap;overflow-wrap:anywhere;border:1px solid #ccc}}
+</style>
+</head>
+<body>
+<div class="toolbar" role="toolbar" aria-label="Reading options"><span class="lbl">Reading options</span><button type="button" id="themeBtn" aria-label="Change colour theme">Theme: Auto</button><button type="button" id="fsDown" aria-label="Smaller text">A−</button><button type="button" id="fsUp" aria-label="Larger text">A+</button><a class="btn" href="#arch">Production</a><div id="progress"></div></div>
+<button type="button" id="top" aria-label="Back to top">↑ Top</button>
+<header><div class="wrap">
+<h1>End-to-End Machine Learning Workflow</h1>
+<p>Practical Python reference from EDA to production: data cleaning, feature engineering, modelling, evaluation, tuning, explainability, MLflow, Docker, Kubernetes, CI/CD, releases, monitoring, retraining, security, feature stores, cloud, GPU and LLM serving, A/B testing and governance.</p>
+</div></header>
+<main>
+<div class="notice"><strong>How to use this guide</strong><br>Sections 1–21 teach the full modelling workflow on the Titanic dataset with scikit-learn. Sections 22–45 add what real systems need: containers, a hardened API, Kubernetes, CI/CD gates, safe releases, monitoring, retraining, security, data versioning, feature stores, batch scoring, cloud platforms, GPU and LLM serving, other problem types, A/B tests, fairness and a glossary. Some snippets are isolated demonstrations and are not meant to run in sequence on the same transformed matrix.<br><span class="muted">Comfortable reading: use <em>Theme</em> to switch between Auto, Light, Sepia and Dark, and <em>A−/A+</em> to resize the text. Your choice is remembered. Hover over any code block to copy it.</span></div>
+<nav aria-label="Contents"><strong>Contents</strong><div class="grp">Modelling workflow</div><a href="#setup">Setup</a><a href="#eda">EDA</a><a href="#missing">Missing data</a><a href="#clean">Cleaning</a><a href="#analysis">Analysis</a><a href="#outliers">Outliers</a><a href="#engineering">Feature engineering</a><a href="#selection">Feature selection</a><a href="#dimension">Dimensionality reduction</a><a href="#split">Splitting</a><a href="#models">Models</a><a href="#metrics">Evaluation</a><a href="#tuning">Tuning</a><a href="#imbalance">Imbalance</a><a href="#explain">Interpretability</a><div class="grp">Packaging and basic deployment</div><a href="#pipeline">Production pipeline</a><a href="#mlflow">MLflow</a><a href="#serialize">Serialization</a><a href="#api">FastAPI basics</a><a href="#testing">Testing</a><a href="#monitoring">Monitoring basics</a><div class="grp">Production deep-dive</div><a href="#arch">Architecture</a><a href="#docker">Docker</a><a href="#service">Production API</a><a href="#k8s">Kubernetes</a><a href="#cicd">CI/CD gates</a><a href="#release">Releases and rollback</a><a href="#skew">Training-serving skew</a><a href="#obs">Monitoring in depth</a><a href="#retrain">Retraining</a><a href="#security">Security and privacy</a><a href="#perf">Performance and cost</a><a href="#pitfalls">Common failures</a><div class="grp">MLOps, cloud, GenAI and reference</div><a href="#versioning">Data and pipeline versioning</a><a href="#featurestore">Feature stores</a><a href="#batch">Batch scoring</a><a href="#cloud">Managed cloud</a><a href="#dl">Deep learning and GPU</a><a href="#llm">LLM and RAG</a><a href="#problems">Other problem types</a><a href="#stack">Local MLOps stack</a><a href="#abtest">A/B testing</a><a href="#responsible">Calibration and fairness</a><a href="#maturity">Maturity and cost</a><a href="#glossary">Glossary and FAQ</a><a href="#checklist">Final checklist</a></nav>
+
+<section id="setup"><h2>1. Environment setup and imports</h2>
+<pre><code>%pip install pandas numpy matplotlib seaborn scipy scikit-learn \
+    xgboost lightgbm catboost imbalanced-learn shap lime \
+    mlflow joblib optuna fastapi uvicorn evidently pytest</code></pre>
+<pre><code>import warnings
+warnings.filterwarnings("ignore")
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from scipy import stats
+
+RANDOM_STATE = 42
+
+from sklearn.model_selection import (
+    train_test_split, cross_val_score, StratifiedKFold,
+    KFold, GroupKFold, TimeSeriesSplit, GridSearchCV,
+    RandomizedSearchCV
+)
+from sklearn.impute import SimpleImputer, KNNImputer
+from sklearn.preprocessing import (
+    StandardScaler, MinMaxScaler, RobustScaler, MaxAbsScaler,
+    Normalizer, OneHotEncoder, OrdinalEncoder,
+    PowerTransformer, QuantileTransformer
+)
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.feature_selection import (
+    VarianceThreshold, SelectKBest, chi2, f_classif,
+    mutual_info_classif, RFE, RFECV, SelectFromModel
+)
+from sklearn.decomposition import PCA, TruncatedSVD
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import (
+    RandomForestClassifier, ExtraTreesClassifier,
+    GradientBoostingClassifier, HistGradientBoostingClassifier
+)
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC
+from sklearn.naive_bayes import GaussianNB
+from sklearn.metrics import (
+    accuracy_score, precision_score, recall_score, f1_score,
+    roc_auc_score, average_precision_score, confusion_matrix,
+    classification_report, RocCurveDisplay
+)</code></pre>
+<pre><code># Load a sample dataset
+df = sns.load_dataset("titanic")
+df.head()</code></pre>
+</section>
+
+<section id="eda"><h2>2. Read data and quick checks</h2>
+<h3>Read common file formats</h3>
+<pre><code>df_csv = pd.read_csv("data.csv")
+df_excel = pd.read_excel("data.xlsx")
+df_parquet = pd.read_parquet("data.parquet")
+
+# SQL example
+from sqlalchemy import create_engine
+engine = create_engine("sqlite:///database.db")
+df_sql = pd.read_sql("SELECT * FROM customers", engine)</code></pre>
+<h3>Identify column types</h3>
+<pre><code>numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
+categorical_cols = df.select_dtypes(
+    include=["object", "category", "bool"]
+).columns.tolist()
+datetime_cols = df.select_dtypes(include=["datetime", "datetimetz"]).columns.tolist()
+
+print("Numerical:", numeric_cols)
+print("Categorical:", categorical_cols)
+print("Datetime:", datetime_cols)</code></pre>
+<h3>Quick checks</h3>
+<pre><code>print("Shape:", df.shape)
+print("Size:", df.size)
+print("Rows:", len(df))
+display(df.head())
+display(df.tail())
+df.info()
+display(df.describe(include="all").T)
+
+for col in df.columns:
+    print(col, "unique:", df[col].nunique(dropna=False))
+    print(df[col].value_counts(dropna=False).head(10))
+
+print("Duplicate rows:", df.duplicated().sum())</code></pre>
+<p><strong>Interpretation:</strong> Confirm row/column counts, data types, value ranges, unique-value counts and duplicate records. Check whether IDs are mistakenly treated as useful predictors.</p>
+</section>
+
+<section id="missing"><h2>3. Missing value analysis and imputation</h2>
+<pre><code>missing_summary = pd.DataFrame({
+    "count": df.isna().sum(),
+    "percent": df.isna().mean().mul(100)
+}).sort_values("percent", ascending=False)
+display(missing_summary)
+
+plt.figure(figsize=(12, 5))
+sns.heatmap(df.isna(), cbar=False)
+plt.title("Missingness map")
+plt.show()</code></pre>
+<h3>Standalone imputation examples</h3>
+<pre><code># Mean: often reasonable for roughly symmetric numeric data
+age_mean = df["age"].fillna(df["age"].mean())
+
+# Median: more robust for skewed numeric data / outliers
+age_median = df["age"].fillna(df["age"].median())
+
+# Mode: common simple choice for categorical columns
+embarked_mode = df["embarked"].fillna(df["embarked"].mode()[0])
+
+# Constant category
+embarked_unknown = df["embarked"].fillna("Unknown")
+
+# KNN: scale numeric columns before distance-based imputation in a
+# real workflow; fit on training data only.
+knn_cols = ["age", "fare", "sibsp", "parch"]
+knn = KNNImputer(n_neighbors=5)
+knn_array = knn.fit_transform(df[knn_cols])
+knn_filled = pd.DataFrame(knn_array, columns=knn_cols, index=df.index)</code></pre>
+<p><strong>Selection:</strong> Mean is sensitive to extreme values; median is more robust. KNN and Iterative Imputer can capture relationships but add complexity. Investigate why values are missing (MCAR, MAR, MNAR) and consider missingness indicator features.</p>
+<pre><code>from sklearn.impute import MissingIndicator, IterativeImputer
+# IterativeImputer may require enabling the experimental API
+from sklearn.experimental import enable_iterative_imputer
+from sklearn.impute import IterativeImputer
+
+iterative = IterativeImputer(random_state=42, max_iter=10)</code></pre>
+</section>
+
+<section id="clean"><h2>4. Data quality checks and cleaning</h2>
+<pre><code># Normalize column names
+df.columns = (
+    df.columns.astype(str).str.strip().str.lower()
+      .str.replace(r"[^a-z0-9]+", "_", regex=True)
+      .str.strip("_")
+)
+
+# Trim string values
+for col in df.select_dtypes(include=["object"]).columns:
+    df[col] = df[col].str.strip()
+
+# Convert numeric-looking strings; invalid values become NaN
+sample = pd.DataFrame({
+    "salary": ["50,000", "60,000", "unknown"],
+    "age": ["25", "30", "40"]
+})
+sample["salary"] = pd.to_numeric(
+    sample["salary"].str.replace(",", "", regex=False),
+    errors="coerce"
+)
+sample["age"] = pd.to_numeric(sample["age"], errors="coerce")
+
+# Parse dates
+# df["order_date"] = pd.to_datetime(df["order_date"], errors="coerce")
+
+# Remove exact duplicates only after understanding what defines a duplicate
+df = df.drop_duplicates().copy()
+
+# Validate ranges using domain rules
+# assert df["age"].dropna().between(0, 120).all()</code></pre>
+<div class="tip"><strong>Important:</strong> Do not blindly remove duplicates or convert unusual values. Confirm business meaning first. A numeric column containing strings such as “unknown” should be parsed and investigated, not silently discarded.</div>
+</section>
+
+<section id="analysis"><h2>5. Categorical and numerical analysis</h2>
+<h3>Categorical: frequency, relative frequency, bar and pie charts</h3>
+<pre><code>for col in categorical_cols:
+    freq = df[col].value_counts(dropna=False)
+    rel_freq = df[col].value_counts(normalize=True, dropna=False)
+    display(pd.DataFrame({
+        "frequency": freq,
+        "relative_frequency": rel_freq
+    }))
+
+# Bar chart
+sns.countplot(data=df, x="class", hue="class", legend=False)
+plt.title("Passenger class frequency")
+plt.show()
+
+# Pie chart
+df["sex"].value_counts().plot(
+    kind="pie", autopct="%1.1f%%", ylabel=""
+)
+plt.title("Sex distribution")
+plt.show()</code></pre>
+<p><strong>Interpretation:</strong> Identify dominant and rare categories, high-cardinality columns, class imbalance and inconsistent labels. Pie charts are best reserved for a small number of categories.</p>
+<h3>Numerical: summary, histogram, KDE, skew and kurtosis</h3>
+<pre><code>numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
+display(df[numeric_cols].describe().T)
+
+for col in numeric_cols:
+    print(
+        col,
+        "skew =", df[col].skew(),
+        "kurtosis =", df[col].kurt()
+    )
+    sns.histplot(df[col].dropna(), kde=True, bins=30)
+    plt.title(f"Distribution: {col}")
+    plt.show()</code></pre>
+<p><strong>Interpretation:</strong> Look for skew, multiple peaks, unusual ranges, discrete values and possible data-entry errors. A normal distribution is not required for every ML algorithm.</p>
+<h3>Bivariate and multivariate analysis</h3>
+<pre><code># Numerical vs numerical
+sns.scatterplot(data=df, x="age", y="fare", hue="survived")
+plt.show()
+
+# Categorical vs numerical
+sns.boxplot(data=df, x="class", y="fare", hue="class", legend=False)
+plt.show()
+
+# Categorical vs categorical
+display(pd.crosstab(df["sex"], df["survived"], normalize="index"))
+
+# Pearson and Spearman correlation
+numeric_df = df.select_dtypes(include=np.number)
+pearson_corr = numeric_df.corr(method="pearson")
+spearman_corr = numeric_df.corr(method="spearman")
+
+sns.heatmap(pearson_corr, annot=True, cmap="coolwarm", fmt=".2f")
+plt.title("Pearson correlation")
+plt.show()
+
+sns.pairplot(
+    df[["age", "fare", "sibsp", "parch", "survived"]].dropna(),
+    hue="survived"
+)
+plt.show()</code></pre>
+<h3>Multicollinearity – VIF</h3>
+<pre><code>from statsmodels.stats.outliers_influence import variance_inflation_factor
+from statsmodels.tools.tools import add_constant
+
+# Use a complete, numeric feature matrix (after appropriate encoding/imputation)
+X_vif = add_constant(X_numeric)
+vif = pd.DataFrame({
+    "feature": X_vif.columns,
+    "VIF": [
+        variance_inflation_factor(X_vif.values, i)
+        for i in range(X_vif.shape[1])
+    ]
+})
+display(vif)</code></pre>
+<p class="muted">Install statsmodels if needed: <code class="inline">%pip install statsmodels</code>. Correlation and VIF diagnose association/redundancy, not causation.</p>
+</section>
+
+<section id="outliers"><h2>6. Outlier analysis and treatment</h2>
+<pre><code># Box plot
+for col in df.select_dtypes(include=np.number).columns:
+    sns.boxplot(x=df[col])
+    plt.title(f"Box plot: {col}")
+    plt.show()
+
+# IQR rule
+col = "fare"
+q1, q3 = df[col].quantile([0.25, 0.75])
+iqr = q3 - q1
+lower, upper = q1 - 1.5 * iqr, q3 + 1.5 * iqr
+outlier_mask = (df[col] < lower) | (df[col] > upper)
+print("Outlier count:", outlier_mask.sum())
+
+# Z-score (most useful as a rough flag for near-normal data)
+z = (df[col] - df[col].mean()) / df[col].std()
+z_outliers = z.abs() > 3
+
+# Modified Z-score using median absolute deviation
+x = df[col].dropna()
+mad = stats.median_abs_deviation(x, scale="normal")
+modified_z = 0.6745 * (x - x.median()) / mad if mad else pd.Series(0, index=x.index)
+modified_z_outliers = modified_z.abs() > 3.5
+
+# Capping / winsorization demonstration
+df["fare_capped"] = df["fare"].clip(lower=lower, upper=upper)</code></pre>
+<p>Possible actions: keep valid extreme observations, cap, transform, use robust algorithms, investigate source errors, or remove only when justified. Learn capping thresholds on training data, not the entire dataset.</p>
+</section>
+
+<section id="engineering"><h2>7. Feature engineering, encoding, scaling and transformation</h2>
+<h3>Feature creation</h3>
+<pre><code># Domain / interaction features
+df["family_size"] = df["sibsp"].fillna(0) + df["parch"].fillna(0) + 1
+df["is_alone"] = (df["family_size"] == 1).astype(int)
+
+# Extract date features
+# df["order_date"] = pd.to_datetime(df["order_date"])
+# df["order_year"] = df["order_date"].dt.year
+# df["order_month"] = df["order_date"].dt.month
+# df["order_dayofweek"] = df["order_date"].dt.dayofweek
+
+# Binning
+df["age_group"] = pd.cut(
+    df["age"], bins=[0, 12, 18, 35, 60, 120],
+    labels=["child", "teen", "young_adult", "adult", "senior"]
+)</code></pre>
+<h3>Encoding methods</h3>
+<pre><code>from sklearn.preprocessing import LabelEncoder, OneHotEncoder, OrdinalEncoder
+
+# LabelEncoder is primarily for target labels, not nominal input columns
+label_encoder = LabelEncoder()
+y_encoded = label_encoder.fit_transform(df["survived"])
+
+# One-hot encoding
+ohe = OneHotEncoder(handle_unknown="ignore", sparse_output=False)
+ohe_array = ohe.fit_transform(df[["embarked"]].fillna("Unknown"))
+ohe_df = pd.DataFrame(
+    ohe_array,
+    columns=ohe.get_feature_names_out(["embarked"]),
+    index=df.index
+)
+
+# Ordinal encoding: only when categories have a real order
+ordinal = OrdinalEncoder(
+    categories=[["Third", "Second", "First"]],
+    handle_unknown="use_encoded_value",
+    unknown_value=-1
+)
+class_encoded = ordinal.fit_transform(df[["class"]])
+
+# Frequency encoding (fit mapping on training data only)
+freq_map = X_train["city"].value_counts(normalize=True)
+X_train["city_freq"] = X_train["city"].map(freq_map)
+X_valid["city_freq"] = X_valid["city"].map(freq_map).fillna(0)
+
+# Target encoding: use cross-fitting / training-only fit to prevent leakage
+from sklearn.preprocessing import TargetEncoder
+target_encoder = TargetEncoder()
+X_train_encoded = target_encoder.fit_transform(X_train[["category"]], y_train)
+X_valid_encoded = target_encoder.transform(X_valid[["category"]])</code></pre>
+<h3>Scaling methods</h3>
+<pre><code>from sklearn.preprocessing import (
+    StandardScaler, MinMaxScaler, RobustScaler, MaxAbsScaler, Normalizer
+)
+
+standard = StandardScaler()
+X_standard = standard.fit_transform(X_train_numeric)
+
+minmax = MinMaxScaler(feature_range=(0, 1))
+X_minmax = minmax.fit_transform(X_train_numeric)
+
+robust = RobustScaler()
+X_robust = robust.fit_transform(X_train_numeric)
+
+maxabs = MaxAbsScaler()
+X_maxabs = maxabs.fit_transform(X_train_numeric)
+
+# Normalizer scales each row/vector, not each feature column
+normalizer = Normalizer(norm="l2")
+X_l2 = normalizer.fit_transform(X_train_numeric)</code></pre>
+<h3>Transformation methods</h3>
+<pre><code># Log: requires values greater than -1 for log1p
+df["fare_log"] = np.log1p(df["fare"].clip(lower=0))
+
+# Square root: requires non-negative values
+df["fare_sqrt"] = np.sqrt(df["fare"].clip(lower=0))
+
+# Reciprocal: handle zero explicitly
+df["fare_reciprocal"] = 1 / (df["fare"] + 1)
+
+# Box-Cox: strictly positive values only
+from scipy.stats import boxcox
+positive = df["fare"].dropna() + 0.001
+fare_boxcox, fitted_lambda = boxcox(positive)
+
+# Yeo-Johnson supports positive, zero and negative values
+yeo = PowerTransformer(method="yeo-johnson")
+X_yeo = yeo.fit_transform(X_train_numeric)
+
+# Quantile transformation
+quantile = QuantileTransformer(
+    n_quantiles=min(1000, len(X_train_numeric)),
+    output_distribution="normal",
+    random_state=42
+)
+X_quantile = quantile.fit_transform(X_train_numeric)</code></pre>
+<div class="tip"><strong>Model guidance:</strong> Scaling is important for KNN, SVM, logistic/linear models and distance/gradient-based methods. Tree-based models usually do not require standard scaling. Fit every learned transformer on training data only.</div>
+</section>
+
+<section id="selection"><h2>8. Feature selection methods</h2>
+<pre><code># Low-variance filter
+variance_selector = VarianceThreshold(threshold=0.01)
+X_low_variance_removed = variance_selector.fit_transform(X_train_numeric)
+
+# Correlation filter
+corr = X_train_numeric.corr().abs()
+upper = corr.where(np.triu(np.ones(corr.shape), k=1).astype(bool))
+drop_cols = [c for c in upper.columns if (upper[c] > 0.90).any()]
+X_corr_selected = X_train_numeric.drop(columns=drop_cols)
+
+# Chi-square: input features must be non-negative
+chi_selector = SelectKBest(score_func=chi2, k=5)
+X_chi = chi_selector.fit_transform(X_train_nonnegative, y_train)
+
+# ANOVA F-test
+anova_selector = SelectKBest(score_func=f_classif, k=5)
+X_anova = anova_selector.fit_transform(X_train_numeric, y_train)
+
+# Mutual information
+mi_scores = mutual_info_classif(X_train_numeric, y_train, random_state=42)
+mi_importance = pd.Series(mi_scores, index=X_train_numeric.columns).sort_values(ascending=False)
+
+# RFE
+rfe = RFE(
+    estimator=RandomForestClassifier(random_state=42),
+    n_features_to_select=5
+)
+X_rfe = rfe.fit_transform(X_train_numeric, y_train)
+print("Selected:", X_train_numeric.columns[rfe.support_].tolist())
+
+# RFECV
+rfecv = RFECV(
+    estimator=RandomForestClassifier(random_state=42),
+    step=1, cv=StratifiedKFold(5, shuffle=True, random_state=42),
+    scoring="f1"
+)
+X_rfecv = rfecv.fit_transform(X_train_numeric, y_train)
+
+# L1 model-based selection
+l1_model = LogisticRegression(
+    penalty="l1", solver="liblinear", C=0.1, max_iter=2000
+)
+l1_selector = SelectFromModel(l1_model)
+X_l1 = l1_selector.fit_transform(X_train_scaled, y_train)
+
+# Permutation importance: evaluate on held-out validation/test data
+from sklearn.inspection import permutation_importance
+fitted_model = RandomForestClassifier(random_state=42).fit(X_train_numeric, y_train)
+perm = permutation_importance(
+    fitted_model, X_valid_numeric, y_valid,
+    n_repeats=10, scoring="f1", random_state=42
+)
+perm_importance = pd.Series(
+    perm.importances_mean, index=X_valid_numeric.columns
+).sort_values(ascending=False)</code></pre>
+<p class="muted">Names such as X_train_numeric, X_train_nonnegative, X_train_scaled, X_valid_numeric and y_valid represent appropriately prepared train/validation objects. Feature selection must be fitted inside cross-validation or a pipeline to avoid optimistic scores.</p>
+</section>
+
+<section id="dimension"><h2>9. Dimensionality reduction</h2>
+<pre><code># PCA: scale numeric features first where units differ
+pca = PCA(n_components=0.95, random_state=42)
+X_pca = pca.fit_transform(X_train_scaled)
+print("Components:", pca.n_components_)
+print("Explained variance:", pca.explained_variance_ratio_.sum())
+
+# Scree / cumulative explained variance
+pca_all = PCA().fit(X_train_scaled)
+plt.plot(np.cumsum(pca_all.explained_variance_ratio_), marker="o")
+plt.xlabel("Number of components")
+plt.ylabel("Cumulative explained variance")
+plt.grid(True)
+plt.show()
+
+# Truncated SVD: useful for sparse matrices such as bag-of-words
+svd = TruncatedSVD(n_components=5, random_state=42)
+X_svd = svd.fit_transform(X_train_matrix)
+print(svd.explained_variance_ratio_)</code></pre>
+<p>PCA/SVD create new components; they do not select original features. t-SNE and UMAP are mainly used for visualization rather than standard predictive preprocessing.</p>
+</section>
+
+<section id="split"><h2>10. Train/validation/test split and cross-validation</h2>
+<pre><code># Separate target before splitting
+target = "survived"
+X = df.drop(columns=[target])
+y = df[target]
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.20, random_state=42, stratify=y
+)
+
+# Optional validation split from training data
+X_train, X_valid, y_train, y_valid = train_test_split(
+    X_train, y_train, test_size=0.20,
+    random_state=42, stratify=y_train
+)
+
+# Stratified K-fold for classification
+skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+
+# K-fold for appropriate non-classification data
+kf = KFold(n_splits=5, shuffle=True, random_state=42)
+
+# GroupKFold: keep records from the same group in one fold
+# group_cv = GroupKFold(n_splits=5)
+# scores = cross_val_score(estimator, X, y, groups=group_ids, cv=group_cv)
+
+# Time series: preserve temporal order
+tscv = TimeSeriesSplit(n_splits=5)</code></pre>
+<div class="tip"><strong>Leakage rule:</strong> Split first. Fit imputers, scalers, encoders, feature selection and PCA only on training folds. For grouped data use group splits; for time series never randomly shuffle future observations into training.</div>
+</section>
+
+<section id="models"><h2>11. Model development and algorithm comparison</h2>
+<h3>Classification models</h3>
+<pre><code>models = {
+    "Logistic Regression": LogisticRegression(max_iter=2000),
+    "Decision Tree": DecisionTreeClassifier(random_state=42),
+    "Random Forest": RandomForestClassifier(random_state=42),
+    "Extra Trees": ExtraTreesClassifier(random_state=42),
+    "KNN": KNeighborsClassifier(),
+    "SVM": SVC(probability=True, random_state=42),
+    "Naive Bayes": GaussianNB(),
+    "Gradient Boosting": GradientBoostingClassifier(random_state=42)
+}
+
+# X_train_model and X_test_model must already be encoded/imputed;
+# scale them for models that need scaling.
+comparison = []
+for name, estimator in models.items():
+    estimator.fit(X_train_model, y_train)
+    pred = estimator.predict(X_test_model)
+    comparison.append({
+        "model": name,
+        "accuracy": accuracy_score(y_test, pred),
+        "precision": precision_score(y_test, pred, zero_division=0),
+        "recall": recall_score(y_test, pred, zero_division=0),
+        "f1": f1_score(y_test, pred, zero_division=0)
+    })
+
+comparison_df = pd.DataFrame(comparison).sort_values("f1", ascending=False)
+display(comparison_df)</code></pre>
+<h3>Optional boosting libraries</h3>
+<pre><code># pip install xgboost lightgbm catboost
+from xgboost import XGBClassifier
+from lightgbm import LGBMClassifier
+from catboost import CatBoostClassifier
+
+boosting_models = {
+    "XGBoost": XGBClassifier(
+        n_estimators=300, max_depth=4, learning_rate=0.05,
+        eval_metric="logloss", random_state=42
+    ),
+    "LightGBM": LGBMClassifier(
+        n_estimators=300, learning_rate=0.05, random_state=42,
+        verbosity=-1
+    ),
+    "CatBoost": CatBoostClassifier(
+        iterations=300, depth=4, learning_rate=0.05,
+        verbose=False, random_seed=42
+    )
+}</code></pre>
+<h3>Regression model examples</h3>
+<pre><code>from sklearn.linear_model import (
+    LinearRegression, Ridge, Lasso, ElasticNet
+)
+from sklearn.ensemble import (
+    RandomForestRegressor, GradientBoostingRegressor,
+    HistGradientBoostingRegressor
+)
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.svm import SVR
+from sklearn.neighbors import KNeighborsRegressor
+
+regression_models = {
+    "Linear": LinearRegression(),
+    "Ridge": Ridge(),
+    "Lasso": Lasso(),
+    "ElasticNet": ElasticNet(),
+    "Decision Tree": DecisionTreeRegressor(random_state=42),
+    "Random Forest": RandomForestRegressor(random_state=42),
+    "Gradient Boosting": GradientBoostingRegressor(random_state=42),
+    "Hist Gradient Boosting": HistGradientBoostingRegressor(random_state=42),
+    "SVR": SVR(),
+    "KNN": KNeighborsRegressor()
+}</code></pre>
+<h3>Unsupervised learning examples</h3>
+<pre><code>from sklearn.cluster import KMeans, DBSCAN, AgglomerativeClustering
+from sklearn.mixture import GaussianMixture
+from sklearn.ensemble import IsolationForest
+from sklearn.neighbors import LocalOutlierFactor
+
+# Scale numeric data before distance-based clustering
+kmeans = KMeans(n_clusters=3, random_state=42, n_init="auto")
+cluster_labels = kmeans.fit_predict(X_cluster_scaled)
+
+dbscan = DBSCAN(eps=0.5, min_samples=5)
+dbscan_labels = dbscan.fit_predict(X_cluster_scaled)
+
+gmm = GaussianMixture(n_components=3, random_state=42)
+gmm_labels = gmm.fit_predict(X_cluster_scaled)
+
+isolation = IsolationForest(contamination="auto", random_state=42)
+anomaly_labels = isolation.fit_predict(X_cluster_scaled)</code></pre>
+</section>
+
+<section id="metrics"><h2>12. Model evaluation</h2>
+<h3>Classification metrics</h3>
+<pre><code>best_model = RandomForestClassifier(random_state=42)
+best_model.fit(X_train_model, y_train)
+
+y_pred = best_model.predict(X_test_model)
+print("Accuracy:", accuracy_score(y_test, y_pred))
+print("Precision:", precision_score(y_test, y_pred, zero_division=0))
+print("Recall:", recall_score(y_test, y_pred, zero_division=0))
+print("F1:", f1_score(y_test, y_pred, zero_division=0))
+print(classification_report(y_test, y_pred, zero_division=0))
+
+cm = confusion_matrix(y_test, y_pred)
+sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
+plt.xlabel("Predicted")
+plt.ylabel("Actual")
+plt.show()
+
+# Probability metrics require predict_proba or decision_function
+y_prob = best_model.predict_proba(X_test_model)[:, 1]
+print("ROC-AUC:", roc_auc_score(y_test, y_prob))
+print("PR-AUC / Average precision:", average_precision_score(y_test, y_prob))
+RocCurveDisplay.from_predictions(y_test, y_prob)
+plt.show()</code></pre>
+<h3>Threshold tuning</h3>
+<pre><code>from sklearn.metrics import precision_recall_curve
+
+precision, recall, thresholds = precision_recall_curve(y_test, y_prob)
+# Example threshold chosen for a business precision/recall trade-off
+threshold = 0.40
+y_pred_custom = (y_prob >= threshold).astype(int)
+print(classification_report(y_test, y_pred_custom, zero_division=0))</code></pre>
+<h3>Regression metrics</h3>
+<pre><code>from sklearn.metrics import (
+    mean_absolute_error, mean_squared_error, r2_score
+)
+
+reg_pred = regression_model.predict(X_test_reg)
+mae = mean_absolute_error(y_test_reg, reg_pred)
+mse = mean_squared_error(y_test_reg, reg_pred)
+rmse = np.sqrt(mse)
+r2 = r2_score(y_test_reg, reg_pred)
+
+print({"MAE": mae, "MSE": mse, "RMSE": rmse, "R2": r2})</code></pre>
+<p>For regression, also consider adjusted R² and MAPE where appropriate. MAPE is unstable when actual values are zero or near zero. For classification, use PR-AUC and recall/precision when classes are imbalanced; accuracy alone can be misleading.</p>
+</section>
+
+<section id="tuning"><h2>13. Hyperparameter tuning</h2>
+<pre><code>rf = RandomForestClassifier(random_state=42)
+
+param_grid = {
+    "n_estimators": [100, 200, 300],
+    "max_depth": [None, 5, 10],
+    "min_samples_split": [2, 5, 10]
+}
+
+grid = GridSearchCV(
+    rf, param_grid, cv=5, scoring="f1",
+    n_jobs=-1, refit=True
+)
+grid.fit(X_train_model, y_train)
+print(grid.best_params_, grid.best_score_)
+
+from scipy.stats import randint
+param_dist = {
+    "n_estimators": randint(100, 500),
+    "max_depth": [None, 5, 10, 20],
+    "min_samples_split": randint(2, 15)
+}
+random_search = RandomizedSearchCV(
+    rf, param_distributions=param_dist, n_iter=20,
+    cv=5, scoring="f1", random_state=42, n_jobs=-1
+)
+random_search.fit(X_train_model, y_train)
+print(random_search.best_params_)</code></pre>
+<h3>Optuna</h3>
+<pre><code>import optuna
+
+def objective(trial):
+    params = {
+        "n_estimators": trial.suggest_int("n_estimators", 100, 500),
+        "max_depth": trial.suggest_int("max_depth", 3, 20),
+        "min_samples_split": trial.suggest_int("min_samples_split", 2, 15)
+    }
+    estimator = RandomForestClassifier(**params, random_state=42)
+    scores = cross_val_score(
+        estimator, X_train_model, y_train,
+        cv=StratifiedKFold(5, shuffle=True, random_state=42),
+        scoring="f1", n_jobs=-1
+    )
+    return scores.mean()
+
+study = optuna.create_study(direction="maximize")
+study.optimize(objective, n_trials=30)
+print(study.best_params, study.best_value)</code></pre>
+<p>Use a validation set or nested cross-validation for model selection. Do not repeatedly tune against the final test set.</p>
+</section>
+
+<section id="imbalance"><h2>14. Imbalanced dataset handling</h2>
+<pre><code>from imblearn.over_sampling import RandomOverSampler, SMOTE, ADASYN
+from imblearn.under_sampling import RandomUnderSampler
+
+# Apply only to training data, never validation/test data
+smote = SMOTE(random_state=42)
+X_smote, y_smote = smote.fit_resample(X_train_model, y_train)
+
+over = RandomOverSampler(random_state=42)
+X_over, y_over = over.fit_resample(X_train_model, y_train)
+
+under = RandomUnderSampler(random_state=42)
+X_under, y_under = under.fit_resample(X_train_model, y_train)
+
+# Class-weight alternative
+weighted_model = RandomForestClassifier(
+    class_weight="balanced", random_state=42
+)</code></pre>
+<p>For mixed numeric/categorical data, consider SMOTENC rather than ordinary SMOTE. Prefer an imbalanced-learn pipeline so resampling occurs inside each training fold.</p>
+</section>
+
+<section id="explain"><h2>15. Model interpretability</h2>
+<pre><code># Built-in tree feature importance
+importance = pd.Series(
+    best_model.feature_importances_,
+    index=feature_names
+).sort_values(ascending=False)
+importance.plot(kind="barh")
+plt.show()
+
+# Permutation importance
+from sklearn.inspection import permutation_importance
+perm = permutation_importance(
+    best_model, X_test_model, y_test,
+    n_repeats=10, scoring="f1", random_state=42
+)
+perm_scores = pd.Series(
+    perm.importances_mean, index=feature_names
+).sort_values(ascending=False)
+
+# SHAP (tree model example)
+import shap
+explainer = shap.TreeExplainer(best_model)
+shap_values = explainer.shap_values(X_test_model)
+shap.summary_plot(shap_values, X_test_model)
+
+# LIME (tabular classification)
+from lime.lime_tabular import LimeTabularExplainer
+lime_explainer = LimeTabularExplainer(
+    training_data=np.asarray(X_train_model),
+    feature_names=feature_names,
+    class_names=["class_0", "class_1"],
+    mode="classification"
+)
+explanation = lime_explainer.explain_instance(
+    np.asarray(X_test_model.iloc[0]),
+    best_model.predict_proba
+)
+explanation.show_in_notebook()</code></pre>
+<p>Explainability output depends on the model and feature representation. Use the same transformed feature names and order that the model receives.</p>
+</section>
+
+<section id="pipeline"><h2>16. Production preprocessing and model pipeline</h2>
+<p>This is the recommended pattern: split raw data first, then fit preprocessing and model together. The pipeline ensures the same transformations are applied during training and inference.</p>
+<pre><code>from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.ensemble import RandomForestClassifier
+
+# Titanic example: remove target and columns unsuitable for this simple example
+target = "survived"
+drop_features = ["alive", "class"]  # class duplicates pclass information
+X = df.drop(columns=[target] + [c for c in drop_features if c in df.columns])
+y = df[target]
+
+# Split before fitting any learned preprocessing
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, stratify=y, random_state=42
+)
+
+numeric_features = X_train.select_dtypes(include=np.number).columns.tolist()
+categorical_features = X_train.select_dtypes(
+    include=["object", "category", "bool"]
+).columns.tolist()
+
+numeric_pipeline = Pipeline([
+    ("imputer", SimpleImputer(strategy="median")),
+    ("scaler", StandardScaler())
+])
+
+categorical_pipeline = Pipeline([
+    ("imputer", SimpleImputer(strategy="most_frequent")),
+    ("onehot", OneHotEncoder(handle_unknown="ignore"))
+])
+
+preprocessor = ColumnTransformer([
+    ("numeric", numeric_pipeline, numeric_features),
+    ("categorical", categorical_pipeline, categorical_features)
+])
+
+full_pipeline = Pipeline([
+    ("preprocessor", preprocessor),
+    ("model", RandomForestClassifier(
+        n_estimators=300, random_state=42, class_weight="balanced"
+    ))
+])
+
+full_pipeline.fit(X_train, y_train)
+pred = full_pipeline.predict(X_test)
+print(classification_report(y_test, pred))</code></pre>
+<div class="tip"><strong>Note about Titanic:</strong> This sample intentionally demonstrates a compact baseline. Real production work should assess leakage-prone columns, define a data contract, validate feature semantics and compare preprocessing/model choices using cross-validation.</div>
+</section>
+
+<section id="mlflow"><h2>17. MLflow experiment tracking and model registry</h2>
+<pre><code>import mlflow
+import mlflow.sklearn
+from sklearn.metrics import accuracy_score, f1_score
+
+mlflow.set_experiment("titanic-classification")
+
+with mlflow.start_run():
+    full_pipeline.fit(X_train, y_train)
+    predictions = full_pipeline.predict(X_test)
+
+    accuracy = accuracy_score(y_test, predictions)
+    f1 = f1_score(y_test, predictions)
+
+    mlflow.log_param("model_type", "RandomForestClassifier")
+    mlflow.log_param("n_estimators", 300)
+    mlflow.log_metric("accuracy", accuracy)
+    mlflow.log_metric("f1", f1)
+
+    mlflow.sklearn.log_model(
+        sk_model=full_pipeline,
+        artifact_path="model"
+    )
+
+# Start local MLflow UI from terminal:
+# mlflow ui --host 127.0.0.1 --port 5000</code></pre>
+<p>Further topics: experiment comparison, artifact storage, model signatures, input examples, registry versions/aliases, approval workflow, reproducibility and tracking data/model versions.</p>
+</section>
+
+<section id="serialize"><h2>18. Model serialization and versioning</h2>
+<pre><code>import joblib
+
+joblib.dump(full_pipeline, "titanic_pipeline.joblib")
+
+loaded_pipeline = joblib.load("titanic_pipeline.joblib")
+new_predictions = loaded_pipeline.predict(X_test)
+
+# Save metadata alongside the model
+metadata = {
+    "model_name": "titanic_random_forest",
+    "version": "1.0.0",
+    "target": "survived",
+    "sklearn_version": __import__("sklearn").__version__
+}
+import json
+with open("model_metadata.json", "w") as f:
+    json.dump(metadata, f, indent=2)</code></pre>
+<p>Pickle/joblib files can execute code when loaded. Load only trusted artifacts. Keep Python/library versions, feature schema, training data reference and model version with the artifact. Consider ONNX for supported portable inference use cases.</p>
+</section>
+
+<section id="api"><h2>19. Deployment with FastAPI</h2>
+<h3>main.py</h3>
+<pre><code>from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+import pandas as pd
+import joblib
+
+app = FastAPI(title="Titanic ML API")
+model = joblib.load("titanic_pipeline.joblib")
+
+class Passenger(BaseModel):
+    pclass: int
+    sex: str
+    age: float | None = None
+    sibsp: int = 0
+    parch: int = 0
+    fare: float | None = None
+    embarked: str | None = None
+    adult_male: bool = False
+    deck: str | None = None
+    embark_town: str | None = None
+    alone: bool = False
+
+@app.get("/")
+def health():
+    return {"status": "ok"}
+
+@app.post("/predict")
+def predict(passenger: Passenger):
+    try:
+        row = pd.DataFrame([passenger.model_dump()])
+        prediction = model.predict(row)[0]
+        return {"prediction": int(prediction)}
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))</code></pre>
+<pre><code># Install and run
+%pip install fastapi uvicorn pydantic
+# Terminal:
+uvicorn main:app --reload --host 127.0.0.1 --port 8000</code></pre>
+<p>The request schema must match the exact raw input columns expected by the saved pipeline. Adjust the Pydantic model to the final training schema; never guess or omit required features.</p>
+<div class="tip"><strong>Going to production?</strong> This is the learning version. Section 24 adds input limits, probabilities, versioning, logging, metrics and readiness checks, and sections 23 and 25 show how to containerize and run it on Kubernetes.</div>
+</section>
+
+<section id="testing"><h2>20. Testing and CI/CD</h2>
+<pre><code># test_model.py
+import joblib
+import pandas as pd
+
+def test_pipeline_returns_one_prediction():
+    model = joblib.load("titanic_pipeline.joblib")
+    # Use a valid sample with exactly the training input columns
+    sample = X_test.iloc[[0]]
+    prediction = model.predict(sample)
+    assert len(prediction) == 1
+    assert prediction[0] in [0, 1]
+
+def test_prediction_probability_range():
+    model = joblib.load("titanic_pipeline.joblib")
+    sample = X_test.iloc[[0]]
+    probability = model.predict_proba(sample)[0]
+    assert np.all(probability >= 0)
+    assert np.all(probability <= 1)
+    assert np.isclose(probability.sum(), 1)</code></pre>
+<pre><code># Run tests
+pytest -v
+
+# Typical CI stages:
+# 1. Install locked dependencies
+# 2. Lint and static checks
+# 3. Unit and data validation tests
+# 4. Train/evaluate model
+# 5. Build Docker image
+# 6. Deploy to staging
+# 7. Smoke tests and approval
+# 8. Promote to production</code></pre>
+</section>
+
+<section id="monitoring"><h2>21. Monitoring, drift and retraining</h2>
+<pre><code># Evidently example (API may vary by installed version)
+from evidently import Report
+from evidently.presets import DataDriftPreset
+
+report = Report([DataDriftPreset()])
+result = report.run(
+    reference_data=X_train,
+    current_data=X_test
+)
+result.save_html("data_drift_report.html")</code></pre>
+<p>Monitor input schema and quality, missingness, feature/prediction distributions, data drift, concept drift, delayed ground-truth performance, latency, error rates and resource usage. A drift alert does not automatically mean model quality has degraded; investigate and validate before retraining.</p>
+<h3>Production monitoring tools</h3>
+<ul><li>Data and model quality: Evidently, custom validation checks</li><li>Metrics and dashboards: Prometheus and Grafana</li><li>Experiment/model lifecycle: MLflow</li><li>Logs and tracing: structured application logs and OpenTelemetry</li><li>Deployment: Docker, Kubernetes and a cloud platform</li></ul>
+</section>
+
+<section id="arch"><h2>22. Production architecture and serving patterns <span class="tag">Production</span></h2>
+<p>A notebook model becomes a product only when the whole path around it is reliable. Decide the serving pattern first, because it drives every later choice.</p>
+<div class="flow"><span>Data + validation</span><i>→</i><span>Training pipeline</span><i>→</i><span>Experiment tracking</span><i>→</i><span>Model registry</span><i>→</i><span>CI/CD</span><i>→</i><span>Serving</span><i>→</i><span>Monitoring</span><i>→</i><span>Retraining</span></div>
+<div class="tw"><table>
+<tr><th>Pattern</th><th>Use when</th><th>Typical latency</th><th>Common tools</th></tr>
+<tr><td>Batch scoring</td><td>Nightly churn, credit or demand scores; results stored in a table</td><td>Minutes to hours</td><td>Airflow, Spark, dbt, cron + Python job</td></tr>
+<tr><td>Real-time API</td><td>Fraud checks, recommendations, form-time decisions</td><td>10–300 ms</td><td>FastAPI, KServe, SageMaker, Vertex AI</td></tr>
+<tr><td>Streaming</td><td>Event-by-event scoring on a message bus</td><td>Sub-second</td><td>Kafka + Flink/Spark Streaming, Kinesis</td></tr>
+<tr><td>Edge / embedded</td><td>Mobile, IoT, offline or privacy-sensitive inference</td><td>Local</td><td>ONNX Runtime, TensorFlow Lite, Core ML</td></tr>
+</table></div>
+<h3>Questions to answer before you deploy</h3>
+<ul>
+<li><strong>Service level:</strong> required p95 latency, requests per second, availability target (for example 99.9%).</li>
+<li><strong>Failure behaviour:</strong> what happens if the model is down or slow? Define a fallback such as a rules-based default or a cached score.</li>
+<li><strong>Cost of errors:</strong> are false positives or false negatives more expensive? Choose the decision threshold from this, not from 0.5.</li>
+<li><strong>Data rules:</strong> which fields are personal data, how long may you keep prediction logs, who may see them?</li>
+<li><strong>Ownership:</strong> who is on call for the model, and who approves a retrain or rollback?</li>
+</ul>
+</section>
+
+<section id="docker"><h2>23. Containerization with Docker <span class="tag">Production</span></h2>
+<p>A container freezes the Python version, libraries and model artifact together, so what you tested is exactly what runs in production.</p>
+<h3>requirements.txt (pin everything)</h3>
+<pre><code>fastapi==0.115.0
+uvicorn[standard]==0.30.6
+gunicorn==23.0.0
+pydantic==2.9.2
+pandas==2.2.3
+numpy==2.1.1
+scikit-learn==1.5.2   # must match the version used for training
+joblib==1.4.2
+prometheus-client==0.21.0</code></pre>
+<p>The versions above are examples; pin the exact versions from your training environment.</p>
+<h3>Dockerfile (multi-stage, non-root)</h3>
+<pre><code>FROM python:3.11-slim AS builder
+WORKDIR /build
+COPY requirements.txt .
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+
+FROM python:3.11-slim
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    OMP_NUM_THREADS=1
+RUN useradd --create-home --uid 10001 appuser
+WORKDIR /app
+COPY --from=builder /install /usr/local
+COPY app/ ./app/
+COPY artifacts/ ./artifacts/
+USER appuser
+EXPOSE 8000
+HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')" || exit 1
+CMD ["gunicorn", "app.main:app", "-k", "uvicorn.workers.UvicornWorker", \
+     "-w", "2", "-b", "0.0.0.0:8000", "--timeout", "30"]</code></pre>
+<h3>.dockerignore</h3>
+<pre><code>.git
+__pycache__/
+*.ipynb
+data/
+mlruns/
+.venv/
+tests/</code></pre>
+<h3>Build, tag and run</h3>
+<pre><code>GIT_SHA=$(git rev-parse --short HEAD)
+docker build -t ml-api:$GIT_SHA .
+docker run --rm -p 8000:8000 \
+  -e MODEL_VERSION=$GIT_SHA \
+  ml-api:$GIT_SHA
+
+curl -s localhost:8000/health</code></pre>
+<div class="tip"><strong>Why these choices:</strong> a multi-stage build keeps compilers out of the final image; a non-root user limits damage if the app is compromised; <span class="inline">OMP_NUM_THREADS=1</span> stops each worker from spawning many math threads and fighting for CPU; tagging with the git SHA (never <span class="inline">latest</span>) makes every deployment traceable and every rollback exact.</div>
+</section>
+
+<section id="service"><h2>24. Production-grade FastAPI service <span class="tag">Production</span></h2>
+<p>The earlier FastAPI example is enough to learn the idea. A real service also needs input limits, probabilities, versioning, structured logs, metrics, and separate health and readiness checks.</p>
+<h3>app/main.py</h3>
+<pre><code>import json
+import logging
+import os
+import time
+import uuid
+from contextlib import asynccontextmanager
+
+import joblib
+import pandas as pd
+from fastapi import FastAPI, HTTPException, Request, Response
+from pydantic import BaseModel, Field
+from prometheus_client import (
+    CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
+)
+
+MODEL_PATH = os.getenv("MODEL_PATH", "artifacts/titanic_pipeline.joblib")
+MODEL_VERSION = os.getenv("MODEL_VERSION", "1.0.0")
+THRESHOLD = float(os.getenv("THRESHOLD", "0.5"))
+MAX_BATCH = int(os.getenv("MAX_BATCH", "500"))
+
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+log = logging.getLogger("ml-api")
+
+REQUESTS = Counter("predict_requests_total", "Prediction rows by outcome", ["status"])
+LATENCY = Histogram("predict_latency_seconds", "Model inference time",
+                    buckets=(.005, .01, .025, .05, .1, .25, .5, 1, 2.5))
+PREDICTIONS = Counter("predictions_total", "Predictions by class", ["label"])
+
+state = {}
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    state["model"] = joblib.load(MODEL_PATH)   # load once, not per request
+    log.info(json.dumps({"event": "model_loaded", "version": MODEL_VERSION}))
+    yield
+    state.clear()
+
+
+app = FastAPI(title="Titanic ML API", version=MODEL_VERSION, lifespan=lifespan)
+
+
+class Passenger(BaseModel):
+    pclass: int = Field(ge=1, le=3)
+    sex: str = Field(pattern="^(male|female)$")
+    age: float | None = Field(default=None, ge=0, le=120)
+    sibsp: int = Field(default=0, ge=0, le=20)
+    parch: int = Field(default=0, ge=0, le=20)
+    fare: float | None = Field(default=None, ge=0)
+    embarked: str | None = None
+    adult_male: bool = False
+    deck: str | None = None
+    embark_town: str | None = None
+    alone: bool = False
+
+
+class BatchRequest(BaseModel):
+    items: list[Passenger] = Field(min_length=1, max_length=MAX_BATCH)
+
+
+@app.middleware("http")
+async def request_logging(request: Request, call_next):
+    request_id = request.headers.get("x-request-id", str(uuid.uuid4()))
+    start = time.perf_counter()
+    response = await call_next(request)
+    response.headers["x-request-id"] = request_id
+    log.info(json.dumps({
+        "event": "request",
+        "request_id": request_id,
+        "path": request.url.path,
+        "status": response.status_code,
+        "latency_ms": round((time.perf_counter() - start) * 1000, 1),
+        "model_version": MODEL_VERSION,
+    }))
+    return response
+
+
+def run_model(items):
+    model = state.get("model")
+    if model is None:
+        raise HTTPException(status_code=503, detail="Model not loaded")
+    frame = pd.DataFrame([i.model_dump() for i in items])
+    start = time.perf_counter()
+    try:
+        proba = model.predict_proba(frame)[:, 1]
+    except Exception:
+        REQUESTS.labels("error").inc(len(items))
+        log.exception("inference_failed")
+        raise HTTPException(status_code=500, detail="Inference failed")
+    LATENCY.observe(time.perf_counter() - start)
+    REQUESTS.labels("ok").inc(len(items))
+    results = []
+    for p in proba:
+        label = int(p &gt;= THRESHOLD)
+        PREDICTIONS.labels(str(label)).inc()
+        results.append({"prediction": label,
+                        "probability": round(float(p), 4),
+                        "model_version": MODEL_VERSION})
+    return results
+
+
+@app.get("/health")        # liveness: is the process alive?
+def health():
+    return {"status": "ok"}
+
+
+@app.get("/ready")         # readiness: can it serve traffic?
+def ready():
+    if "model" not in state:
+        raise HTTPException(status_code=503, detail="Model not loaded")
+    return {"status": "ready", "model_version": MODEL_VERSION}
+
+
+@app.post("/predict")
+def predict(passenger: Passenger):
+    return run_model([passenger])[0]
+
+
+@app.post("/predict/batch")
+def predict_batch(req: BatchRequest):
+    return {"results": run_model(req.items)}
+
+
+@app.get("/metrics")
+def metrics():
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)</code></pre>
+<h3>What each part is for</h3>
+<ul>
+<li><strong>Load at startup:</strong> loading the model inside the request would add seconds to every call.</li>
+<li><strong>Validated input:</strong> range and pattern checks reject bad requests with a clear 422 before they reach the model.</li>
+<li><strong>Plain <span class="inline">def</span> endpoints:</strong> scikit-learn is CPU-bound, so FastAPI runs these in a thread pool instead of blocking the event loop.</li>
+<li><strong>Probability and version in every response:</strong> callers can apply their own threshold, and every prediction can be traced to a model.</li>
+<li><strong>Liveness vs readiness:</strong> a pod that is alive but still loading must not receive traffic.</li>
+<li><strong>Request ID and JSON logs:</strong> one ID lets you follow a single request across services.</li>
+</ul>
+<div class="warn"><strong>Privacy:</strong> do not log raw personal fields by default. Log the request ID, model version, probability and a hashed or minimal feature set, and set a retention period.</div>
+</section>
+
+<section id="k8s"><h2>25. Kubernetes deployment <span class="tag">Production</span></h2>
+<p>Kubernetes gives you rolling updates, self-healing and autoscaling. A minimal production setup has a Deployment, Service, autoscaler and disruption budget.</p>
+<pre><code># k8s/ml-api.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-api
+  labels: {app: ml-api}
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: {maxUnavailable: 0, maxSurge: 1}
+  selector:
+    matchLabels: {app: ml-api}
+  template:
+    metadata:
+      labels: {app: ml-api}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /metrics
+        prometheus.io/port: "8000"
+    spec:
+      securityContext: {runAsNonRoot: true}
+      containers:
+        - name: ml-api
+          image: ghcr.io/your-org/ml-api:GIT_SHA
+          ports: [{containerPort: 8000}]
+          env:
+            - {name: MODEL_VERSION, value: "GIT_SHA"}
+            - {name: THRESHOLD, value: "0.5"}
+          resources:
+            requests: {cpu: "500m", memory: "512Mi"}
+            limits:   {cpu: "1",    memory: "1Gi"}
+          readinessProbe:
+            httpGet: {path: /ready, port: 8000}
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: {path: /health, port: 8000}
+            initialDelaySeconds: 15
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata: {name: ml-api}
+spec:
+  selector: {app: ml-api}
+  ports: [{port: 80, targetPort: 8000}]
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: {name: ml-api}
+spec:
+  scaleTargetRef: {apiVersion: apps/v1, kind: Deployment, name: ml-api}
+  minReplicas: 3
+  maxReplicas: 12
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: {type: Utilization, averageUtilization: 65}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata: {name: ml-api}
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels: {app: ml-api}</code></pre>
+<ul>
+<li><strong>maxUnavailable 0:</strong> new pods must become ready before old ones are removed, so a bad release does not drop capacity.</li>
+<li><strong>Requests and limits:</strong> size them from load tests, not guesses. Memory is mostly model size multiplied by worker count.</li>
+<li><strong>Disruption budget:</strong> keeps at least two replicas up during node maintenance.</li>
+</ul>
+<p>If you do not need Kubernetes, managed options such as Cloud Run, AWS ECS/Fargate or SageMaker endpoints give most of the same benefits with far less operational work.</p>
+</section>
+
+<section id="cicd"><h2>26. CI/CD with quality gates <span class="tag">Production</span></h2>
+<p>Treat the model like any other release, with one extra rule: a model must pass <em>quality gates</em>, not only code tests, before it can be promoted.</p>
+<pre><code># .github/workflows/ml-release.yml
+name: ml-release
+on:
+  push:
+    branches: [main]
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }}/ml-api
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11", cache: pip}
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: ruff check .
+      - run: pytest -v --maxfail=1
+
+  model-gate:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11", cache: pip}
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      # Fails the job if the candidate is worse than the floor or the champion
+      - run: python scripts/evaluate_candidate.py --min-f1 0.78 --max-latency-ms 50
+
+  build-push:
+    needs: model-gate
+    runs-on: ubuntu-latest
+    permissions: {contents: read, packages: write}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: ${{ env.IMAGE }}:${{ github.sha }}
+
+  deploy-staging:
+    needs: build-push
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./scripts/deploy.sh staging ${{ github.sha }}
+      - run: ./scripts/smoke_test.sh https://staging.example.com
+
+  deploy-production:
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    environment: production        # configure required reviewers = manual approval
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./scripts/deploy.sh production ${{ github.sha }}
+      - run: ./scripts/smoke_test.sh https://api.example.com</code></pre>
+<h3>Typical quality gates</h3>
+<div class="tw"><table>
+<tr><th>Gate</th><th>Example check</th></tr>
+<tr><td>Data validation</td><td>Schema, ranges, null rate and duplicate checks pass on the training data</td></tr>
+<tr><td>Model quality</td><td>Metric is above a fixed floor <em>and</em> not worse than the current champion by more than a tolerance</td></tr>
+<tr><td>Subgroup check</td><td>No important segment drops sharply below overall performance</td></tr>
+<tr><td>Inference contract</td><td>Saved pipeline accepts the exact API schema and returns valid probabilities</td></tr>
+<tr><td>Performance</td><td>p95 latency and memory within budget on a reference machine</td></tr>
+<tr><td>Security</td><td>Dependency and image scans show no critical findings</td></tr>
+</table></div>
+</section>
+
+<section id="release"><h2>27. Release strategies and rollback <span class="tag">Production</span></h2>
+<div class="tw"><table>
+<tr><th>Strategy</th><th>How it works</th><th>Best for</th></tr>
+<tr><td>Shadow</td><td>New model receives a copy of live traffic; its answers are logged but never returned</td><td>Safest first look at real data and latency</td></tr>
+<tr><td>Canary</td><td>Send 1%, then 5%, 25%, 100% of traffic to the new version while watching metrics</td><td>Most real-time services</td></tr>
+<tr><td>Blue/green</td><td>Run old and new stacks side by side and switch traffic at once</td><td>Instant rollback with extra capacity</td></tr>
+<tr><td>A/B test</td><td>Randomly split users and compare a business metric over time</td><td>Proving real business impact</td></tr>
+</table></div>
+<h3>Rollback in one step</h3>
+<pre><code># Application rollback
+kubectl rollout status deployment/ml-api
+kubectl rollout undo deployment/ml-api
+
+# Model rollback with MLflow aliases (no image rebuild needed if the service loads by alias)
+from mlflow import MlflowClient
+client = MlflowClient()
+client.set_registered_model_alias("titanic-classifier", "champion", version=7)  # previous good version</code></pre>
+<div class="tip"><strong>Rule of thumb:</strong> a release is not finished when the deploy command succeeds. It is finished when the canary has run long enough to show stable error rate, latency and prediction distribution.</div>
+</section>
+
+<section id="skew"><h2>28. Training-serving skew and feature consistency <span class="tag">Production</span></h2>
+<p>Many models that look excellent offline fail online because the features at serving time are not computed the same way as at training time. This is called training-serving skew.</p>
+<h3>Common causes</h3>
+<ul>
+<li>Preprocessing written twice (once in the notebook, once in the API) and slowly diverging.</li>
+<li>Different library versions, category lists, or missing-value handling.</li>
+<li>Features that use future information or data that is not available at request time (leakage).</li>
+<li>Training on a clean history but serving on late, partial or corrupted events.</li>
+</ul>
+<h3>Practical defences</h3>
+<ul>
+<li>Ship <strong>one</strong> object: a scikit-learn <span class="inline">Pipeline</span> that contains all preprocessing, as in section 16. The API passes raw columns and nothing else.</li>
+<li>Use <span class="inline">OneHotEncoder(handle_unknown="ignore")</span> so a new category does not crash inference.</li>
+<li>Validate every input frame against a schema, in training and in serving.</li>
+<li>Keep a small <em>golden set</em> of rows with known outputs and assert that offline and online predictions match.</li>
+<li>For many shared, time-dependent features, use a feature store such as Feast so training and serving read the same definitions.</li>
+</ul>
+<pre><code>import pandera as pa
+
+schema = pa.DataFrameSchema({
+    "pclass": pa.Column(int, pa.Check.isin([1, 2, 3])),
+    "sex":    pa.Column(str, pa.Check.isin(["male", "female"])),
+    "age":    pa.Column(float, pa.Check.in_range(0, 120), nullable=True),
+    "fare":   pa.Column(float, pa.Check.ge(0), nullable=True),
+}, coerce=True)
+
+schema.validate(df, lazy=True)   # raises with every violation listed</code></pre>
+<pre><code># Golden-set test: online code path must reproduce offline predictions
+import json, joblib, pandas as pd, numpy as np
+
+def test_golden_predictions():
+    model = joblib.load("artifacts/titanic_pipeline.joblib")
+    golden = pd.read_parquet("tests/golden_inputs.parquet")
+    expected = json.load(open("tests/golden_expected.json"))
+    got = model.predict_proba(golden)[:, 1]
+    assert np.allclose(got, expected["probabilities"], atol=1e-6)</code></pre>
+</section>
+
+<section id="obs"><h2>29. Monitoring in depth: system, data and model health <span class="tag">Production</span></h2>
+<p>Section 21 introduced monitoring. In production you watch three layers, because each one fails in a different way.</p>
+<div class="tw"><table>
+<tr><th>Layer</th><th>What to watch</th><th>Typical alert</th></tr>
+<tr><td>System</td><td>Latency p50/p95/p99, error rate, throughput, CPU, memory, restarts</td><td>p95 above SLO for 10 minutes</td></tr>
+<tr><td>Data</td><td>Schema violations, null rate, new categories, feature drift (PSI or KS test)</td><td>PSI above 0.25 on an important feature</td></tr>
+<tr><td>Model</td><td>Prediction distribution, positive-class rate, calibration, real metrics once labels arrive</td><td>F1 or AUC drops below agreed floor</td></tr>
+<tr><td>Business</td><td>Approval rate, conversion, manual-review load, complaints</td><td>Sudden change versus last week</td></tr>
+</table></div>
+<h3>Population Stability Index (PSI) for numeric drift</h3>
+<pre><code>import numpy as np
+import pandas as pd
+
+def psi(expected, actual, bins=10):
+    expected = pd.Series(expected).dropna()
+    actual = pd.Series(actual).dropna()
+    edges = np.unique(np.quantile(expected, np.linspace(0, 1, bins + 1)))
+    edges[0], edges[-1] = -np.inf, np.inf
+    e = np.histogram(expected, edges)[0] / len(expected)
+    a = np.histogram(actual, edges)[0] / len(actual)
+    e, a = np.clip(e, 1e-6, None), np.clip(a, 1e-6, None)
+    return float(np.sum((a - e) * np.log(a / e)))
+
+# Common rule of thumb: &lt; 0.1 stable, 0.1 to 0.25 moderate shift, &gt; 0.25 large shift
+for col in ["age", "fare"]:
+    print(col, round(psi(X_train[col], X_recent[col]), 3))</code></pre>
+<h3>Prometheus alert rules</h3>
+<pre><code>groups:
+  - name: ml-api
+    rules:
+      - alert: HighInferenceLatencyP95
+        expr: histogram_quantile(0.95, sum(rate(predict_latency_seconds_bucket[5m])) by (le)) &gt; 0.3
+        for: 10m
+        labels: {severity: warning}
+        annotations: {summary: "p95 inference latency above 300 ms"}
+
+      - alert: HighErrorRate
+        expr: sum(rate(predict_requests_total{status="error"}[5m])) / sum(rate(predict_requests_total[5m])) &gt; 0.02
+        for: 5m
+        labels: {severity: critical}
+        annotations: {summary: "More than 2% of predictions are failing"}
+
+      - alert: PositiveRateShift
+        expr: |
+          sum(rate(predictions_total{label="1"}[1h])) / sum(rate(predictions_total[1h])) &gt; 0.60
+          or
+          sum(rate(predictions_total{label="1"}[1h])) / sum(rate(predictions_total[1h])) &lt; 0.20
+        for: 30m
+        labels: {severity: warning}
+        annotations: {summary: "Share of positive predictions moved outside the expected band"}</code></pre>
+<h3>Measuring real performance when labels arrive late</h3>
+<p>For many problems (fraud, churn, loans) the true outcome arrives days or weeks later. Log a request ID with every prediction, then join the outcomes when they are known.</p>
+<pre><code>import pandas as pd
+from sklearn.metrics import f1_score, roc_auc_score
+
+preds = pd.read_parquet("prediction_log.parquet")   # request_id, ts, probability, prediction
+truth = pd.read_parquet("ground_truth.parquet")     # request_id, y_true
+joined = preds.merge(truth, on="request_id", how="inner")
+
+def window_metrics(g):
+    out = {"n": len(g), "f1": f1_score(g["y_true"], g["prediction"], zero_division=0)}
+    out["auc"] = roc_auc_score(g["y_true"], g["probability"]) if g["y_true"].nunique() &gt; 1 else float("nan")
+    return pd.Series(out)
+
+weekly = joined.groupby(pd.Grouper(key="ts", freq="W")).apply(window_metrics)
+weekly</code></pre>
+<div class="tip"><strong>Avoid alert fatigue:</strong> alert on symptoms that need action, require a duration (<span class="inline">for: 10m</span>), and give every alert an owner and a runbook link. A drift alert is a reason to investigate, not an automatic reason to retrain.</div>
+</section>
+
+<section id="retrain"><h2>30. Automated retraining and safe promotion <span class="tag">Production</span></h2>
+<div class="tw"><table>
+<tr><th>Trigger</th><th>Example</th><th>Notes</th></tr>
+<tr><td>Schedule</td><td>Weekly or monthly</td><td>Simple and predictable; may retrain when not needed</td></tr>
+<tr><td>Drift</td><td>PSI above threshold on key features</td><td>Confirm quality actually dropped before promoting</td></tr>
+<tr><td>Performance</td><td>Rolling F1 below floor</td><td>Needs labels; best signal of real harm</td></tr>
+<tr><td>Data volume</td><td>New labelled rows exceed a count</td><td>Good for slowly growing datasets</td></tr>
+</table></div>
+<h3>Airflow DAG sketch</h3>
+<pre><code>from datetime import datetime
+from airflow.decorators import dag, task
+
+@dag(schedule="@weekly", start_date=datetime(2026, 1, 1), catchup=False, tags=["ml"])
+def retrain_titanic():
+
+    @task
+    def extract_and_validate():
+        # pull the latest labelled data, run schema and quality checks
+        return "s3://bucket/datasets/2026-11-06/train.parquet"
+
+    @task
+    def train(dataset_uri: str):
+        # fit full pipeline, log params, metrics and model to MLflow
+        return "mlflow-run-id"
+
+    @task
+    def evaluate_and_promote(run_id: str):
+        # champion/challenger comparison, see function below
+        ...
+
+    evaluate_and_promote(train(extract_and_validate()))
+
+retrain_titanic()</code></pre>
+<h3>Champion/challenger promotion gate with MLflow</h3>
+<pre><code>import mlflow
+from mlflow import MlflowClient
+
+NAME = "titanic-classifier"
+client = MlflowClient()
+
+def promote_if_better(challenger_run_id, metric="f1", min_gain=0.005):
+    challenger_score = client.get_run(challenger_run_id).data.metrics[metric]
+    try:
+        champion = client.get_model_version_by_alias(NAME, "champion")
+        champion_score = client.get_run(champion.run_id).data.metrics[metric]
+    except Exception:
+        champion_score = float("-inf")           # first model: nothing to beat
+
+    if challenger_score &lt; champion_score + min_gain:
+        print(f"Keep champion ({champion_score:.4f}); challenger {challenger_score:.4f}")
+        return False
+
+    version = mlflow.register_model(f"runs:/{challenger_run_id}/model", NAME)
+    client.set_registered_model_alias(NAME, "challenger", version.version)
+    # Deploy as canary/shadow first; set "champion" only after it proves stable.
+    return True</code></pre>
+<div class="warn"><strong>Do not auto-deploy blindly:</strong> keep a human approval or a long enough canary for high-impact models. Automatic retraining on bad or poisoned data can make a model worse without any code change.</div>
+</section>
+
+<section id="security"><h2>31. Security, privacy and governance <span class="tag">Production</span></h2>
+<ul>
+<li><strong>Access control:</strong> put the API behind an API gateway or service mesh with authentication (API keys, OAuth/JWT or mutual TLS) and rate limits.</li>
+<li><strong>Input safety:</strong> validate types and ranges, cap batch size and request size, and set timeouts.</li>
+<li><strong>Trusted artifacts only:</strong> joblib and pickle can run code on load. Load models only from your own registry with restricted write access, and consider signed artifacts.</li>
+<li><strong>Secrets:</strong> keep keys and database passwords in a secrets manager or Kubernetes secrets, never in the image, code or notebooks.</li>
+<li><strong>Supply chain:</strong> pin dependencies and scan them and the image regularly.</li>
+<li><strong>Privacy:</strong> collect only needed fields, mask or hash identifiers in logs, define retention, and follow the rules that apply to you (for example GDPR or India’s DPDP Act).</li>
+<li><strong>Documentation:</strong> keep a model card with purpose, training data, metrics, limits, known biases and owner.</li>
+<li><strong>Fairness and audit:</strong> evaluate subgroups, keep an audit trail of who promoted which model and when, and allow human review for high-stakes decisions.</li>
+</ul>
+<pre><code>pip install pip-audit
+pip-audit -r requirements.txt
+
+# Container image scan
+trivy image ghcr.io/your-org/ml-api:GIT_SHA</code></pre>
+</section>
+
+<section id="perf"><h2>32. Performance, load testing and cost <span class="tag">Production</span></h2>
+<h3>Load test before launch</h3>
+<pre><code># locustfile.py
+from locust import HttpUser, task, between
+
+class PredictUser(HttpUser):
+    wait_time = between(0.1, 0.5)
+
+    @task
+    def predict(self):
+        self.client.post("/predict", json={
+            "pclass": 3, "sex": "male", "age": 28, "sibsp": 0, "parch": 0,
+            "fare": 8.05, "embarked": "S", "adult_male": True,
+            "deck": None, "embark_town": "Southampton", "alone": True,
+        })
+
+# Run:
+# locust -f locustfile.py --host http://localhost:8000 \
+#        --users 100 --spawn-rate 10 --run-time 5m --headless</code></pre>
+<p>Record p50, p95 and p99 latency, throughput and error rate, then find the point where latency starts to climb. Set autoscaling and resource limits from that evidence.</p>
+<h3>Ways to reduce latency and cost</h3>
+<div class="tw"><table>
+<tr><th>Technique</th><th>Effect</th><th>Trade-off</th></tr>
+<tr><td>Batch endpoint or micro-batching</td><td>Higher throughput per CPU</td><td>Small added wait per request</td></tr>
+<tr><td>Simpler model or fewer trees</td><td>Faster, smaller memory</td><td>Check the accuracy loss</td></tr>
+<tr><td>ONNX Runtime export</td><td>Faster, portable inference</td><td>Not every transformer converts cleanly</td></tr>
+<tr><td>Cache repeated inputs</td><td>Skips recomputation</td><td>Needs sensible expiry</td></tr>
+<tr><td>Limit math threads per worker</td><td>Avoids CPU contention</td><td>Scale with more workers or pods</td></tr>
+<tr><td>Scale to zero or spot instances</td><td>Lower cost for spiky load</td><td>Cold starts, possible interruptions</td></tr>
+<tr><td>Quantization (deep learning)</td><td>Smaller, faster models</td><td>Validate quality</td></tr>
+</table></div>
+<div class="tip"><strong>Memory note:</strong> with several Gunicorn workers each loading its own copy of the model, memory grows with the worker count. Size the pod for model size multiplied by workers, plus headroom.</div>
+</section>
+
+<section id="pitfalls"><h2>33. Common production failures and fixes <span class="tag">Production</span></h2>
+<div class="tw"><table>
+<tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr>
+<tr><td>Great offline score, poor live results</td><td>Leakage or training-serving skew</td><td>Single pipeline object, golden tests, time-based validation</td></tr>
+<tr><td>Crash on a new category or missing field</td><td>Unhandled unseen values</td><td>Schema validation, <span class="inline">handle_unknown="ignore"</span>, safe defaults</td></tr>
+<tr><td>Error when loading the model</td><td>Library version mismatch</td><td>Pin versions and record them in model metadata</td></tr>
+<tr><td>Slow first request or random spikes</td><td>Model loaded lazily, thread contention</td><td>Load at startup, readiness probe, <span class="inline">OMP_NUM_THREADS=1</span></td></tr>
+<tr><td>Pods restarted for memory</td><td>Many workers each hold the model</td><td>Fewer workers, larger limits, smaller model</td></tr>
+<tr><td>Accuracy decays quietly over months</td><td>Concept drift and no label feedback</td><td>Log request IDs, join outcomes, track rolling metrics</td></tr>
+<tr><td>Bad release reached everyone</td><td>No canary or readiness gate</td><td>Staged rollout, automatic rollback on alert</td></tr>
+<tr><td>Cannot reproduce a past prediction</td><td>No versioning of data, code or model</td><td>Log model version, dataset reference and git SHA</td></tr>
+<tr><td>Too many alerts, all ignored</td><td>Alerts not tied to action</td><td>Fewer, symptom-based alerts with owners and runbooks</td></tr>
+</table></div>
+</section>
+
+<section id="versioning"><h2>34. Data, code and pipeline versioning <span class="tag">MLOps</span></h2>
+<p>To reproduce a model you need three things pinned together: the <strong>code</strong> (git), the <strong>data</strong> (DVC, lakeFS or Delta Lake snapshots) and the <strong>parameters and environment</strong>. MLflow then links them to a run.</p>
+<h3>Track data with DVC</h3>
+<pre><code>pip install "dvc[s3]"
+git init
+dvc init
+
+dvc add data/raw/train.csv
+git add data/raw/train.csv.dvc data/raw/.gitignore
+git commit -m "track raw training data"
+
+dvc remote add -d storage s3://my-bucket/dvc-store
+dvc push                      # upload data to remote storage
+# On another machine: git clone ... then
+dvc pull                      # download the exact data version</code></pre>
+<h3>Declare the pipeline (dvc.yaml and params.yaml)</h3>
+<pre><code># params.yaml
+train:
+  n_estimators: 300
+  max_depth: 8
+  random_state: 42
+
+# dvc.yaml
+stages:
+  prepare:
+    cmd: python src/prepare.py
+    deps: [src/prepare.py, data/raw/train.csv]
+    outs: [data/processed/train.parquet]
+  train:
+    cmd: python src/train.py
+    deps: [src/train.py, data/processed/train.parquet]
+    params: [train.n_estimators, train.max_depth, train.random_state]
+    outs: [artifacts/titanic_pipeline.joblib]
+    metrics:
+      - metrics.json:
+          cache: false</code></pre>
+<pre><code>dvc repro                 # re-runs only stages whose inputs changed
+dvc metrics show          # current metrics
+dvc metrics diff main     # compare with the main branch
+dvc params diff           # which parameters changed</code></pre>
+<h3>Reproducibility checklist</h3>
+<ul>
+<li>Set random seeds for NumPy, scikit-learn, and any deep learning framework.</li>
+<li>Record the git commit, data version, library versions (<span class="inline">pip freeze</span>) and parameters on every MLflow run.</li>
+<li>Use time-based or hash-based dataset snapshots, never "the latest table".</li>
+<li>Store a data schema or data contract next to the dataset and validate it in the pipeline.</li>
+</ul>
+<pre><code>import mlflow, subprocess, sys
+
+with mlflow.start_run():
+    mlflow.set_tag("git_commit", subprocess.check_output(["git", "rev-parse", "HEAD"]).decode().strip())
+    mlflow.set_tag("data_version", "train.csv.dvc@" + open("data/raw/train.csv.dvc").read().split("md5: ")[1].split()[0])
+    mlflow.log_param("python", sys.version.split()[0])
+    mlflow.log_artifact("requirements.txt")</code></pre>
+</section>
+
+<section id="featurestore"><h2>35. Feature stores <span class="tag">MLOps</span></h2>
+<p>A feature store keeps one definition of each feature and serves it two ways: <strong>offline</strong> (point-in-time correct history for training) and <strong>online</strong> (low-latency lookup for predictions). It is most useful when many models share features or features depend on time, such as "orders in the last 30 days".</p>
+<div class="tw"><table>
+<tr><th>Use a feature store when</th><th>Skip it when</th></tr>
+<tr><td>Several models reuse the same features</td><td>One model with simple row-level features</td></tr>
+<tr><td>Features are aggregates over time windows</td><td>All features come directly from the request</td></tr>
+<tr><td>Training-serving skew has hurt you before</td><td>A single Pipeline already contains all logic</td></tr>
+</table></div>
+<h3>Feast example</h3>
+<pre><code># feature_store.yaml
+project: titanic
+registry: data/registry.db
+provider: local
+online_store:
+  type: sqlite
+  path: data/online_store.db
+offline_store:
+  type: file
+entity_key_serialization_version: 2</code></pre>
+<pre><code># features.py
+from datetime import timedelta
+from feast import Entity, FeatureView, Field, FileSource
+from feast.types import Float32, Int64
+
+passenger = Entity(name="passenger", join_keys=["passenger_id"])
+
+source = FileSource(
+    path="data/passenger_stats.parquet",
+    timestamp_field="event_timestamp",
+)
+
+passenger_stats = FeatureView(
+    name="passenger_stats",
+    entities=[passenger],
+    ttl=timedelta(days=365),
+    schema=[
+        Field(name="fare", dtype=Float32),
+        Field(name="age", dtype=Float32),
+        Field(name="pclass", dtype=Int64),
+    ],
+    source=source,
+)</code></pre>
+<pre><code># Terminal
+feast apply
+feast materialize-incremental $(date -u +"%Y-%m-%dT%H:%M:%S")</code></pre>
+<pre><code>from feast import FeatureStore
+import pandas as pd
+
+store = FeatureStore(repo_path=".")
+FEATURES = ["passenger_stats:fare", "passenger_stats:age", "passenger_stats:pclass"]
+
+# Training: point-in-time correct join (no future information)
+entity_df = pd.DataFrame({
+    "passenger_id": [1001, 1002],
+    "event_timestamp": pd.to_datetime(["2026-10-01", "2026-10-02"]),
+})
+training_df = store.get_historical_features(entity_df=entity_df, features=FEATURES).to_df()
+
+# Serving: millisecond lookup by key
+online = store.get_online_features(
+    features=FEATURES, entity_rows=[{"passenger_id": 1001}]
+).to_dict()</code></pre>
+</section>
+
+<section id="batch"><h2>36. Batch scoring pipelines <span class="tag">MLOps</span></h2>
+<p>Many production models never run behind an API. A scheduled job scores a table and writes results for dashboards, CRM tools or downstream systems. Design it to be safe to re-run.</p>
+<pre><code>import os
+import joblib
+import pandas as pd
+import pyarrow.parquet as pq
+from datetime import date
+
+MODEL_VERSION = os.getenv("MODEL_VERSION", "1.0.0")
+FEATURES = ["pclass", "sex", "age", "sibsp", "parch", "fare", "embarked",
+            "adult_male", "deck", "embark_town", "alone"]
+
+def score(input_path: str, out_dir: str, run_date: date):
+    model = joblib.load("artifacts/titanic_pipeline.joblib")
+    parts = []
+    for batch in pq.ParquetFile(input_path).iter_batches(batch_size=50_000):
+        df = batch.to_pandas()
+        out = df[["passenger_id"]].copy()
+        out["score"] = model.predict_proba(df[FEATURES])[:, 1]
+        out["model_version"] = MODEL_VERSION
+        out["scored_on"] = run_date.isoformat()
+        parts.append(out)
+
+    result = pd.concat(parts, ignore_index=True)
+    os.makedirs(out_dir, exist_ok=True)
+    tmp = f"{out_dir}/part.tmp.parquet"
+    final = f"{out_dir}/part.parquet"
+    result.to_parquet(tmp, index=False)
+    os.replace(tmp, final)          # atomic swap: readers never see half-written files
+    return len(result)
+
+if __name__ == "__main__":
+    today = date.today()
+    n = score("data/input.parquet", f"scores/run_date={today}", today)
+    print("scored rows:", n)</code></pre>
+<ul>
+<li><strong>Idempotent:</strong> running the same date twice overwrites the same partition instead of duplicating rows.</li>
+<li><strong>Chunked:</strong> reads in batches so memory stays flat on large tables.</li>
+<li><strong>Auditable:</strong> every output row carries the model version and run date.</li>
+<li><strong>Checked:</strong> compare row counts, null rates and score distribution with the previous run, and fail the job if they look wrong.</li>
+<li><strong>Scheduled:</strong> run it from Airflow, Prefect, Dagster, a cron job, or a cloud scheduler with retries and alerts on failure.</li>
+</ul>
+</section>
+
+<section id="cloud"><h2>37. Managed cloud deployment options <span class="tag">Cloud</span></h2>
+<div class="tw"><table>
+<tr><th>Option</th><th>Effort</th><th>Best for</th><th>Notes</th></tr>
+<tr><td>Cloud Run / App Runner / Azure Container Apps</td><td>Low</td><td>Containerized API with spiky traffic</td><td>Scale to zero; no GPU or limited GPU; cold starts</td></tr>
+<tr><td>AWS SageMaker endpoints</td><td>Medium</td><td>Teams already on AWS; built-in autoscaling and monitoring</td><td>Real-time, serverless, async and batch transform modes</td></tr>
+<tr><td>GCP Vertex AI endpoints</td><td>Medium</td><td>Teams on GCP; integrated registry and pipelines</td><td>Managed autoscaling and model monitoring</td></tr>
+<tr><td>Azure ML online endpoints</td><td>Medium</td><td>Teams on Azure</td><td>Blue/green traffic splitting built in</td></tr>
+<tr><td>Kubernetes (EKS, GKE, AKS) with KServe or Seldon</td><td>High</td><td>Many models, custom needs, multi-cloud</td><td>Most control and most operations work</td></tr>
+<tr><td>Serverless functions (Lambda, Cloud Functions)</td><td>Low</td><td>Small models, rare calls</td><td>Package size and cold-start limits</td></tr>
+</table></div>
+<h3>Google Cloud Run (container you built in section 23)</h3>
+<pre><code>gcloud run deploy ml-api \
+  --image REGION-docker.pkg.dev/PROJECT/REPO/ml-api:GIT_SHA \
+  --region REGION \
+  --memory 1Gi --cpu 1 \
+  --min-instances 1 --max-instances 10 \
+  --concurrency 40 \
+  --set-env-vars MODEL_VERSION=GIT_SHA</code></pre>
+<h3>AWS SageMaker (scikit-learn model)</h3>
+<pre><code>import sagemaker
+from sagemaker.sklearn.model import SKLearnModel
+
+role = sagemaker.get_execution_role()
+
+model = SKLearnModel(
+    model_data="s3://my-bucket/models/titanic/model.tar.gz",
+    role=role,
+    entry_point="inference.py",          # defines model_fn, input_fn, predict_fn, output_fn
+    framework_version="1.2-1",
+)
+
+predictor = model.deploy(initial_instance_count=2, instance_type="ml.m5.large")
+# predictor.predict(payload)
+# predictor.delete_endpoint()            # always clean up to avoid charges</code></pre>
+<h3>GCP Vertex AI</h3>
+<pre><code>from google.cloud import aiplatform
+
+aiplatform.init(project="PROJECT", location="REGION")
+
+model = aiplatform.Model.upload(
+    display_name="titanic-classifier",
+    artifact_uri="gs://my-bucket/models/titanic/",
+    serving_container_image_uri="us-docker.pkg.dev/vertex-ai/prediction/sklearn-cpu.1-5:latest",
+)
+
+endpoint = model.deploy(
+    machine_type="n1-standard-2",
+    min_replica_count=1,
+    max_replica_count=3,
+)
+# endpoint.predict(instances=[[...feature values...]])</code></pre>
+<h3>Azure ML (CLI v2)</h3>
+<pre><code>az ml online-endpoint create -f endpoint.yml
+az ml online-deployment create -f deployment.yml --all-traffic
+az ml online-endpoint invoke --name titanic-endpoint --request-file sample.json</code></pre>
+<div class="warn"><strong>Check before copying:</strong> cloud SDK arguments, container image tags and framework versions change often. Confirm them in the provider documentation, and delete test endpoints when you finish because idle endpoints are billed.</div>
+</section>
+
+<section id="dl"><h2>38. Deep learning, ONNX and GPU serving <span class="tag">Serving</span></h2>
+<p>Deep learning models need a different serving stack: larger artifacts, GPU memory management and request batching.</p>
+<div class="tw"><table>
+<tr><th>Need</th><th>Good option</th></tr>
+<tr><td>Portable, fast CPU or GPU inference</td><td>Export to ONNX and run with ONNX Runtime</td></tr>
+<tr><td>Many models on shared GPUs, dynamic batching</td><td>NVIDIA Triton Inference Server</td></tr>
+<tr><td>PyTorch-native serving</td><td>TorchServe or a FastAPI service with TorchScript</td></tr>
+<tr><td>Mobile and edge</td><td>TensorFlow Lite, Core ML, ONNX Runtime Mobile</td></tr>
+</table></div>
+<h3>Export PyTorch to ONNX and run it</h3>
+<pre><code>import numpy as np
+import torch
+import onnxruntime as ort
+
+model.eval()
+dummy = torch.randn(1, 20)
+
+torch.onnx.export(
+    model, dummy, "model.onnx",
+    input_names=["input"], output_names=["logits"],
+    dynamic_axes={"input": {0: "batch"}, "logits": {0: "batch"}},
+    opset_version=17,
+)
+
+session = ort.InferenceSession("model.onnx", providers=["CPUExecutionProvider"])
+batch = np.random.randn(4, 20).astype(np.float32)
+logits = session.run(None, {"input": batch})[0]
+print(logits.shape)</code></pre>
+<h3>Triton model repository</h3>
+<pre><code>models/
+  titanic/
+    config.pbtxt
+    1/
+      model.onnx
+
+# config.pbtxt
+name: "titanic"
+platform: "onnxruntime_onnx"
+max_batch_size: 32
+dynamic_batching { max_queue_delay_microseconds: 5000 }
+
+# Run (use a current image tag from NVIDIA NGC)
+docker run --gpus all --rm -p 8000:8000 -p 8001:8001 -p 8002:8002 \
+  -v $PWD/models:/models nvcr.io/nvidia/tritonserver:IMAGE_TAG \
+  tritonserver --model-repository=/models</code></pre>
+<h3>GPU serving practices</h3>
+<ul>
+<li>Use <strong>dynamic batching</strong>: group requests for a few milliseconds so the GPU stays busy.</li>
+<li>Warm up the model at startup so the first user does not pay for CUDA initialization.</li>
+<li>Track GPU utilization and memory, not only CPU.</li>
+<li>Consider half precision (FP16) or quantization, and validate accuracy after each change.</li>
+<li>Pin CUDA, driver and framework versions in the image.</li>
+</ul>
+</section>
+
+<section id="llm"><h2>39. LLM and RAG deployment <span class="tag">GenAI</span></h2>
+<p>Serving a large language model adds new concerns: token streaming, GPU memory for the KV cache, cost per token, prompt versions and answer quality that cannot be measured with accuracy alone.</p>
+<h3>Serve an open model with vLLM</h3>
+<pre><code>pip install vllm
+vllm serve mistralai/Mistral-7B-Instruct-v0.3 \
+  --port 8001 \
+  --max-model-len 8192 \
+  --gpu-memory-utilization 0.90</code></pre>
+<pre><code>from openai import OpenAI
+
+client = OpenAI(base_url="http://localhost:8001/v1", api_key="not-needed")
+
+resp = client.chat.completions.create(
+    model="mistralai/Mistral-7B-Instruct-v0.3",
+    messages=[
+        {"role": "system", "content": "Answer only from the provided context."},
+        {"role": "user", "content": "What is a canary release?"},
+    ],
+    temperature=0.2,
+    max_tokens=300,
+)
+print(resp.choices[0].message.content)</code></pre>
+<h3>Minimal RAG service</h3>
+<pre><code>import faiss
+import numpy as np
+from sentence_transformers import SentenceTransformer
+
+embedder = SentenceTransformer("all-MiniLM-L6-v2")
+
+# 1. Ingest: split documents into chunks, embed and index them
+chunks = [
+    "A canary release sends a small share of traffic to the new version first.",
+    "Blue/green keeps two environments and switches traffic between them.",
+    "Shadow deployment copies live traffic to a new model without returning its output.",
+]
+vectors = embedder.encode(chunks, normalize_embeddings=True).astype("float32")
+index = faiss.IndexFlatIP(vectors.shape[1])
+index.add(vectors)
+
+# 2. Retrieve
+def retrieve(question, k=2):
+    q = embedder.encode([question], normalize_embeddings=True).astype("float32")
+    scores, ids = index.search(q, k)
+    return [(chunks[i], float(s)) for i, s in zip(ids[0], scores[0]) if i != -1]
+
+# 3. Generate with grounding
+def answer(question):
+    hits = retrieve(question)
+    context = "\n".join(f"- {text}" for text, _ in hits)
+    prompt = f"Context:\n{context}\n\nQuestion: {question}\nAnswer using only the context. Say if it is not covered."
+    resp = client.chat.completions.create(
+        model="mistralai/Mistral-7B-Instruct-v0.3",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.1, max_tokens=250,
+    )
+    return {"answer": resp.choices[0].message.content,
+            "sources": [text for text, _ in hits]}</code></pre>
+<h3>Production concerns for LLM systems</h3>
+<div class="tw"><table>
+<tr><th>Area</th><th>What to do</th></tr>
+<tr><td>Latency</td><td>Track time to first token and tokens per second; stream responses</td></tr>
+<tr><td>Cost</td><td>Log input and output tokens per request; cache frequent answers; route easy queries to a smaller model</td></tr>
+<tr><td>Quality</td><td>Keep a test set of questions with expected answers; score groundedness, relevance and refusal behaviour on every change</td></tr>
+<tr><td>Retrieval</td><td>Measure recall of the right chunk, tune chunk size and overlap, consider hybrid search and re-ranking</td></tr>
+<tr><td>Safety</td><td>Guard against prompt injection and data leakage; filter inputs and outputs; never put secrets in prompts</td></tr>
+<tr><td>Versioning</td><td>Version prompts, embedding model, index and generation model together; re-embed when the embedding model changes</td></tr>
+<tr><td>Privacy</td><td>Mask personal data before logging or sending to third-party APIs</td></tr>
+<tr><td>Reliability</td><td>Timeouts, retries with backoff, rate limits and a fallback response</td></tr>
+<tr><td>Observability</td><td>Trace every step (retrieve, prompt, generate) with a tool such as Langfuse, LangSmith or OpenTelemetry</td></tr>
+</table></div>
+</section>
+
+<section id="problems"><h2>40. Other problem types: regression, time series, clustering, NLP, recommendation <span class="tag">Modelling</span></h2>
+<p>The guide so far used classification. The deployment steps stay the same, but the validation scheme, metrics and monitoring change with the problem.</p>
+<div class="tw"><table>
+<tr><th>Problem</th><th>Validation split</th><th>Main metrics</th><th>Deployment and monitoring notes</th></tr>
+<tr><td>Regression</td><td>Random or grouped K-fold</td><td>MAE, RMSE, R², MAPE (careful near zero)</td><td>Monitor residuals and error by segment; report prediction intervals if decisions need them</td></tr>
+<tr><td>Time series forecasting</td><td>Rolling or expanding window, never shuffled</td><td>MAE, RMSE, sMAPE, MASE</td><td>Retrain on a schedule; compare against a naive seasonal baseline</td></tr>
+<tr><td>Classification</td><td>Stratified K-fold</td><td>Precision, recall, F1, ROC-AUC, PR-AUC</td><td>Monitor positive rate, calibration and threshold performance</td></tr>
+<tr><td>Clustering</td><td>Stability across samples</td><td>Silhouette, Davies-Bouldin, business review</td><td>Watch cluster sizes and centroid drift</td></tr>
+<tr><td>Anomaly detection</td><td>Time-based, few labels</td><td>Precision at top-k, recall on known incidents</td><td>Alert volume must be manageable; review false alarms</td></tr>
+<tr><td>Text / NLP</td><td>Stratified, group by document or user</td><td>F1, accuracy, per-class metrics</td><td>Monitor vocabulary and language drift; version the tokenizer with the model</td></tr>
+<tr><td>Recommendation</td><td>Time-based per user</td><td>Precision@k, recall@k, NDCG, coverage</td><td>A/B test on click or conversion; watch popularity bias</td></tr>
+<tr><td>Computer vision</td><td>Stratified, group by source or camera</td><td>Accuracy, mAP, IoU</td><td>GPU serving, image-quality and brightness drift checks</td></tr>
+</table></div>
+<h3>Regression metrics</h3>
+<pre><code>import numpy as np
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+
+pred = model.predict(X_test)
+mae = mean_absolute_error(y_test, pred)
+rmse = np.sqrt(mean_squared_error(y_test, pred))
+r2 = r2_score(y_test, pred)
+print(f"MAE={mae:.3f}  RMSE={rmse:.3f}  R2={r2:.3f}")
+
+# Residual check by segment
+residual = y_test - pred
+print(residual.groupby(X_test["segment"]).agg(["mean", "std"]))</code></pre>
+<h3>Time-series validation and lag features</h3>
+<pre><code>import pandas as pd
+from sklearn.model_selection import TimeSeriesSplit
+from sklearn.ensemble import HistGradientBoostingRegressor
+from sklearn.metrics import mean_absolute_error
+
+df = df.sort_values("date").reset_index(drop=True)
+df["lag_1"] = df["sales"].shift(1)
+df["lag_7"] = df["sales"].shift(7)
+df["roll_7_mean"] = df["sales"].shift(1).rolling(7).mean()   # shift(1) prevents leakage
+df = df.dropna()
+
+X = df[["lag_1", "lag_7", "roll_7_mean"]]
+y = df["sales"]
+
+tscv = TimeSeriesSplit(n_splits=5, gap=1)
+for fold, (train_idx, val_idx) in enumerate(tscv.split(X)):
+    m = HistGradientBoostingRegressor(random_state=42)
+    m.fit(X.iloc[train_idx], y.iloc[train_idx])
+    mae = mean_absolute_error(y.iloc[val_idx], m.predict(X.iloc[val_idx]))
+    print(f"fold {fold}: MAE={mae:.2f}")</code></pre>
+<div class="tip"><strong>Always beat a baseline:</strong> for forecasting, compare with "same value as last week". For classification, compare with the majority class or a simple logistic regression. If a complex model cannot beat the baseline clearly, do not deploy it.</div>
+</section>
+
+<section id="stack"><h2>41. Local MLOps stack with Docker Compose <span class="tag">MLOps</span></h2>
+<p>You can run tracking, serving and monitoring together on one machine to practise the full loop before using cloud services.</p>
+<pre><code># docker-compose.yml
+services:
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:latest
+    command: mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri sqlite:////mlflow/mlflow.db --default-artifact-root /mlflow/artifacts
+    ports: ["5000:5000"]
+    volumes: ["mlflow-data:/mlflow"]
+
+  api:
+    build: .
+    ports: ["8000:8000"]
+    environment:
+      MODEL_VERSION: "local-dev"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready')"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes: ["./prometheus.yml:/etc/prometheus/prometheus.yml:ro"]
+    ports: ["9090:9090"]
+
+  grafana:
+    image: grafana/grafana:latest
+    ports: ["3000:3000"]
+    depends_on: [prometheus]
+
+volumes:
+  mlflow-data:</code></pre>
+<pre><code># prometheus.yml
+global:
+  scrape_interval: 15s
+scrape_configs:
+  - job_name: ml-api
+    static_configs:
+      - targets: ["api:8000"]</code></pre>
+<pre><code>docker compose up -d --build
+# MLflow UI   http://localhost:5000
+# API docs    http://localhost:8000/docs
+# Prometheus  http://localhost:9090
+# Grafana     http://localhost:3000   (add Prometheus as a data source: http://prometheus:9090)</code></pre>
+<p>For real use, pin image versions instead of <span class="inline">latest</span>.</p>
+</section>
+
+<section id="abtest"><h2>42. A/B testing and business impact <span class="tag">Production</span></h2>
+<p>A better offline metric does not prove a better business outcome. For decisions that affect users, compare the new model with the current one on live traffic.</p>
+<ol>
+<li>Choose one <strong>primary metric</strong> (conversion, revenue per user, loss rate) and a few <strong>guardrail metrics</strong> (latency, complaints, refund rate).</li>
+<li>Compute the <strong>sample size</strong> before starting, and decide the test duration in advance.</li>
+<li>Randomize by user or account, not by request, so one person always sees one variant.</li>
+<li>Do not stop early when the result looks good; wait for the planned sample.</li>
+<li>Check for sample ratio mismatch (the traffic split matches the plan) before reading results.</li>
+</ol>
+<pre><code>from statsmodels.stats.proportion import proportion_effectsize, proportions_ztest
+from statsmodels.stats.power import NormalIndPower
+
+# Plan: detect a lift from 12% to 14% conversion
+effect = proportion_effectsize(0.14, 0.12)
+n_per_group = NormalIndPower().solve_power(effect_size=effect, alpha=0.05, power=0.8, ratio=1)
+print("users needed per group:", int(n_per_group) + 1)
+
+# Analyse after the planned sample is collected
+conversions = [conv_control, conv_new]
+users = [n_control, n_new]
+z, p_value = proportions_ztest(count=conversions, nobs=users)
+print(f"z={z:.2f}, p={p_value:.4f}")</code></pre>
+<p>When traffic is small or risk is high, use shadow mode first, then a small canary, and review business metrics together with model metrics.</p>
+</section>
+
+<section id="responsible"><h2>43. Calibration, fairness and model documentation <span class="tag">Responsible AI</span></h2>
+<h3>Calibration: are probabilities trustworthy?</h3>
+<p>If a model says 0.8, about 80% of such cases should be positive. Calibration matters whenever you act on the probability itself (pricing, risk, triage).</p>
+<pre><code>from sklearn.calibration import CalibratedClassifierCV, calibration_curve
+from sklearn.metrics import brier_score_loss
+
+calibrated = CalibratedClassifierCV(estimator=full_pipeline, method="isotonic", cv=5)
+calibrated.fit(X_train, y_train)
+
+proba = calibrated.predict_proba(X_test)[:, 1]
+print("Brier score:", round(brier_score_loss(y_test, proba), 4))   # lower is better
+
+frac_pos, mean_pred = calibration_curve(y_test, proba, n_bins=10)
+for p, f in zip(mean_pred, frac_pos):
+    print(f"predicted {p:.2f} to actual {f:.2f}")</code></pre>
+<h3>Subgroup performance</h3>
+<pre><code>import pandas as pd
+from sklearn.metrics import precision_score, recall_score
+
+test_df = X_test.copy()
+test_df["y"] = y_test.values
+test_df["pred"] = full_pipeline.predict(X_test)
+
+report = test_df.groupby("sex").apply(lambda g: pd.Series({
+    "n": len(g),
+    "positive_rate": g["pred"].mean(),
+    "precision": precision_score(g["y"], g["pred"], zero_division=0),
+    "recall": recall_score(g["y"], g["pred"], zero_division=0),
+}))
+print(report)</code></pre>
+<p>Large gaps between groups need investigation: check data coverage, label quality and whether the feature itself is appropriate. Which fairness measure applies depends on the use case and the law, so involve domain and legal experts for high-stakes decisions.</p>
+<h3>Model card template</h3>
+<pre><code># Model card: titanic-classifier v1.0.0
+
+Purpose:            what decision this model supports, and who uses it
+Not intended for:   uses that are out of scope
+Owner / contact:    team and on-call channel
+Training data:      source, date range, size, known gaps
+Features:           list, with sensitive or proxy features flagged
+Evaluation:         metrics on the test set, baseline comparison, subgroup results
+Calibration:        Brier score and notes
+Limitations:        where it performs poorly; known failure modes
+Monitoring:         metrics, thresholds and alert owners
+Retraining:         triggers and approval process
+Change log:         versions, dates, reasons</code></pre>
+</section>
+
+<section id="maturity"><h2>44. MLOps maturity, team roles and cost control <span class="tag">Strategy</span></h2>
+<div class="tw"><table>
+<tr><th>Level</th><th>What it looks like</th><th>Next step</th></tr>
+<tr><td>0: Manual</td><td>Notebook training, model file copied by hand, no monitoring</td><td>Move code to scripts, pin environment, track experiments</td></tr>
+<tr><td>1: Automated training</td><td>Pipeline retrains and registers models; deployment still semi-manual</td><td>Add CI/CD, quality gates and basic monitoring</td></tr>
+<tr><td>2: Automated delivery</td><td>CI/CD with tests, staged rollout, drift and performance monitoring</td><td>Automate retraining triggers and safe promotion</td></tr>
+<tr><td>3: Continuous learning</td><td>Monitored feedback loop, champion/challenger, governance and audit</td><td>Optimize cost, reuse features, platformize</td></tr>
+</table></div>
+<p>You do not need level 3 for every project. Pick the level that matches the risk and value of the model: a weekly internal report needs far less than a payments fraud model.</p>
+<h3>Who does what</h3>
+<ul>
+<li><strong>Data scientist:</strong> problem framing, features, model, evaluation, model card.</li>
+<li><strong>ML or MLOps engineer:</strong> pipelines, packaging, serving, CI/CD, monitoring.</li>
+<li><strong>Data engineer:</strong> reliable data sources, schemas, feature pipelines.</li>
+<li><strong>Product owner and domain expert:</strong> success metric, thresholds, acceptance, A/B test decisions.</li>
+<li><strong>Security and compliance:</strong> access, privacy, audit.</li>
+</ul>
+<h3>Cost control</h3>
+<ul>
+<li>Right-size instances from load tests and use autoscaling with sensible minimums.</li>
+<li>Use batch scoring where real-time is not needed.</li>
+<li>Use spot or preemptible instances for training; keep serving on stable capacity.</li>
+<li>Shut down idle endpoints and notebooks; tag resources by project and set budget alerts.</li>
+<li>Remove old model versions and artifacts under a retention rule.</li>
+</ul>
+</section>
+
+<section id="glossary"><h2>45. Glossary and quick answers <span class="tag">Reference</span></h2>
+<div class="tw"><table>
+<tr><th>Term</th><th>Meaning</th></tr>
+<tr><td>Data drift</td><td>Input feature distributions change compared with training data</td></tr>
+<tr><td>Concept drift</td><td>The relationship between features and target changes</td></tr>
+<tr><td>Training-serving skew</td><td>Features computed differently in training and serving</td></tr>
+<tr><td>Data leakage</td><td>Training uses information not available at prediction time</td></tr>
+<tr><td>SLO / SLA</td><td>Target or promised service level, such as p95 latency or availability</td></tr>
+<tr><td>Canary / shadow / blue-green</td><td>Release strategies that limit the effect of a bad version</td></tr>
+<tr><td>Champion / challenger</td><td>Current production model and the candidate being tested against it</td></tr>
+<tr><td>Model registry</td><td>Versioned store of approved models with metadata and aliases</td></tr>
+<tr><td>Feature store</td><td>Shared, versioned feature definitions served offline and online</td></tr>
+<tr><td>PSI</td><td>Population Stability Index, a score for distribution shift</td></tr>
+<tr><td>Calibration</td><td>Agreement between predicted probabilities and real frequencies</td></tr>
+<tr><td>Idempotent job</td><td>A job that gives the same result when run again</td></tr>
+<tr><td>Dynamic batching</td><td>Grouping requests briefly to use hardware efficiently</td></tr>
+<tr><td>RAG</td><td>Retrieval-augmented generation: retrieve relevant text, then generate an answer from it</td></tr>
+</table></div>
+<h3>Quick answers</h3>
+<details><summary>How do I avoid training-serving skew?</summary><p>Ship preprocessing and model as one Pipeline, validate input schemas, and test that offline and online predictions match on a golden set.</p></details>
+<details><summary>How do I know when to retrain?</summary><p>Use drift and rolling performance monitoring, plus a schedule as a safety net. Retrain only after confirming that quality dropped or data has truly changed.</p></details>
+<details><summary>Which deployment should I choose first?</summary><p>For most teams: a Docker container on a managed service (Cloud Run, ECS, App Runner or a managed ML endpoint). Move to Kubernetes only when you need its control.</p></details>
+<details><summary>How do I deploy safely?</summary><p>Run tests and model quality gates, deploy to staging, use shadow or canary, watch error rate, latency and prediction distribution, and keep a one-step rollback.</p></details>
+<details><summary>What if I have no labels in production?</summary><p>Monitor input drift and prediction distribution, sample cases for human labelling, and join real outcomes later when they become available.</p></details>
+<details><summary>Batch or real-time?</summary><p>Choose batch if decisions can wait. It is cheaper and simpler. Choose real-time only when a decision is needed while the user waits.</p></details>
+<details><summary>How should I handle a model that is too slow?</summary><p>Profile first, then try a simpler model, feature reduction, ONNX Runtime, batching, caching, and more replicas, in that order.</p></details>
+<details><summary>Can I use pickle or joblib in production?</summary><p>Yes, if you load only trusted files from a controlled registry and pin library versions. For portability or untrusted environments consider ONNX.</p></details>
+</section>
+
+<section id="checklist"><h2>46. Final production checklist</h2>
+<ol>
+<li>Understand target, business objective and success metric.</li>
+<li>Validate schema, types, ranges, duplicates and missingness.</li>
+<li>Explore distributions, relationships, outliers and imbalance.</li>
+<li>Split data correctly before fitting learned transformations.</li>
+<li>Build preprocessing with Pipeline and ColumnTransformer.</li>
+<li>Establish a baseline, then compare suitable algorithms.</li>
+<li>Use cross-validation and tune hyperparameters on training data.</li>
+<li>Evaluate once on an untouched test set with business-relevant metrics.</li>
+<li>Check leakage, calibration, subgroup performance and explainability.</li>
+<li>Track experiments and save a reproducible, versioned artifact.</li>
+<li>Test inference schema and deploy through an API or batch job.</li>
+<li>Monitor data quality, drift, latency and real-world performance.</li>
+<li>Define rollback, retraining and model approval procedures.</li>
+</ol>
+<h3>Additional checks for a live system</h3>
+<ol start="14">
+<li>Pin dependencies and build a versioned, non-root container image tagged with the git SHA.</li>
+<li>Separate liveness and readiness checks; load the model once at startup.</li>
+<li>Validate inputs at the API edge and again with a data schema; handle unseen categories safely.</li>
+<li>Return model version and probability; choose the threshold from the cost of errors.</li>
+<li>Add quality gates in CI: data, metric floor, champion comparison, latency and security scans.</li>
+<li>Release through shadow or canary stages with automatic rollback on alerts.</li>
+<li>Emit structured logs with request IDs and Prometheus metrics; alert on symptoms, not noise.</li>
+<li>Join delayed ground truth to track real performance over time.</li>
+<li>Protect the API and artifacts: authentication, rate limits, trusted model sources, secrets management.</li>
+<li>Minimise and protect personal data in logs; keep a model card and an audit trail.</li>
+<li>Load test before launch and size resources from evidence.</li>
+<li>Assign an owner, an on-call path and a documented rollback and retraining runbook.</li>
+<li>Version data, code, parameters and environment together so any model can be reproduced.</li>
+<li>Compare against a simple baseline and test business impact with an A/B test when decisions affect users.</li>
+<li>Check calibration and subgroup performance, and keep a model card.</li>
+<li>For LLM and RAG systems, keep a quality test set, version prompts and indexes, and track tokens, cost and latency.</li>
+</ol>
+<div class="tip"><strong>Suggested learning order:</strong> First master EDA and preprocessing; then classification/regression algorithms and evaluation; next pipelines and leakage prevention; finally MLflow, FastAPI, Docker, testing and monitoring. Practice each algorithm in a separate notebook with the same train/validation/test discipline.</div>
+</section>
+</main>
+<footer>Reference guide for learning and production planning. Library versions and APIs change: check each library’s documentation, pin versions, and test every snippet in a staging environment before relying on it.</footer>
+<script>
+(function(){
+  var root=document.documentElement;
+  var themes=['auto','light','sepia','dark'];
+  var store={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+
+  function applyTheme(t){
+    if(t==='auto'||!t){root.removeAttribute('data-theme');t='auto'}else{root.setAttribute('data-theme',t)}
+    var b=document.getElementById('themeBtn');if(b)b.textContent='Theme: '+t.charAt(0).toUpperCase()+t.slice(1);
+    return t;
+  }
+  var theme=applyTheme(store.get('mlguide-theme')||'auto');
+  document.getElementById('themeBtn').addEventListener('click',function(){
+    theme=themes[(themes.indexOf(theme)+1)%themes.length];
+    applyTheme(theme);store.set('mlguide-theme',theme);
+  });
+
+  var fs=parseInt(store.get('mlguide-fs')||'17',10);if(isNaN(fs))fs=17;
+  function applyFs(){fs=Math.max(14,Math.min(24,fs));root.style.setProperty('--fs',fs+'px');store.set('mlguide-fs',String(fs))}
+  applyFs();
+  document.getElementById('fsDown').addEventListener('click',function(){fs-=1;applyFs()});
+  document.getElementById('fsUp').addEventListener('click',function(){fs+=1;applyFs()});
+
+  var bar=document.getElementById('progress'),topBtn=document.getElementById('top');
+  function onScroll(){
+    var h=document.documentElement.scrollHeight-window.innerHeight;
+    var p=h>0?(window.scrollY/h)*100:0;
+    bar.style.width=p+'%';
+    topBtn.style.display=window.scrollY>600?'block':'none';
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});onScroll();
+  topBtn.addEventListener('click',function(){window.scrollTo({top:0})});
+
+  var KW=/^(?:import|from|as|def|class|return|if|elif|else|for|while|in|not|and|or|is|None|True|False|with|try|except|finally|raise|lambda|yield|async|await|pass|break|continue|global|assert)$/;
+  var TOK=/(#[^\n]*)|("""[\s\S]*?"""|'''[\s\S]*?'''|"(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*')|\b(\d+(?:\.\d+)?)\b|\b([A-Za-z_][A-Za-z0-9_]*)\b/g;
+  function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+  function highlight(text){
+    var out='',last=0,m;TOK.lastIndex=0;
+    while((m=TOK.exec(text))){
+      out+=esc(text.slice(last,m.index));
+      if(m[1])out+='<span class="tk-c">'+esc(m[1])+'</span>';
+      else if(m[2])out+='<span class="tk-s">'+esc(m[2])+'</span>';
+      else if(m[3])out+='<span class="tk-n">'+esc(m[3])+'</span>';
+      else if(KW.test(m[4]))out+='<span class="tk-k">'+esc(m[4])+'</span>';
+      else out+=esc(m[0]);
+      last=TOK.lastIndex;
+    }
+    return out+esc(text.slice(last));
+  }
+
+  document.querySelectorAll('pre').forEach(function(pre){
+    var code=pre.querySelector('code')||pre;
+    var raw=code.textContent;
+    if(raw.length<30000){code.innerHTML=highlight(raw)}
+    var wrap=document.createElement('div');wrap.className='codewrap';
+    pre.parentNode.insertBefore(wrap,pre);wrap.appendChild(pre);
+    var btn=document.createElement('button');btn.type='button';btn.className='copy';btn.textContent='Copy';
+    btn.addEventListener('click',function(){
+      var done=function(){btn.textContent='Copied';setTimeout(function(){btn.textContent='Copy'},1400)};
+      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(raw).then(done,function(){})}
+      else{var ta=document.createElement('textarea');ta.value=raw;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done()}catch(e){}document.body.removeChild(ta)}
+    });
+    wrap.appendChild(btn);
+  });
+})();
+</script>
+</body>
+</html>

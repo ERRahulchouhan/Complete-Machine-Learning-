@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Production ML Pipeline: Stages and Methods</title>
+<style>
+:root{--bg:#f3efe6;--sf:#fbf8f1;--tx:#34383f;--mu:#6b7078;--bd:#ded8c9;--ac:#4a7a8c;--y:#3f7a56;--o:#8a6d2f}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1e2329;--sf:#262c33;--tx:#cfd4da;--mu:#8e969f;--bd:#363e47;--ac:#7fb0c2;--y:#7fbf97;--o:#d2b36a}}
+:root[data-theme="dark"]{--bg:#1e2329;--sf:#262c33;--tx:#cfd4da;--mu:#8e969f;--bd:#363e47;--ac:#7fb0c2;--y:#7fbf97;--o:#d2b36a}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:70px}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.65 Georgia,"Times New Roman",serif;padding:0 16px 60px}
+.wrap{max-width:900px;margin:0 auto}
+header{padding:34px 0 10px}
+h1{font-size:1.85rem;margin:0 0 6px;font-weight:600}
+.sub{color:var(--mu);margin:0;font-family:system-ui,sans-serif;font-size:.95rem}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0;border-bottom:1px solid var(--bd);display:flex;gap:8px;align-items:center;font-family:system-ui,sans-serif}
+input{flex:1;min-width:160px;padding:8px 12px;border:1px solid var(--bd);border-radius:8px;background:var(--sf);color:var(--tx);font:inherit;font-size:.92rem}
+button{padding:7px 12px;border:1px solid var(--bd);border-radius:8px;background:var(--sf);color:var(--tx);font:inherit;font-size:.85rem;cursor:pointer}
+:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.flow{background:var(--sf);border:1px solid var(--bd);border-left:4px solid var(--ac);border-radius:8px;padding:12px 16px;margin:18px 0;font-size:.95rem}
+nav{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;font-family:system-ui,sans-serif}
+nav a{font-size:.78rem;color:var(--ac);text-decoration:none;border:1px solid var(--bd);border-radius:14px;padding:2px 10px;background:var(--sf)}
+section{margin:30px 0}
+h2{font-size:1.2rem;margin:0 0 2px;font-weight:600}
+.note{color:var(--mu);font-size:.92rem;margin:0 0 8px}
+.tb{overflow-x:auto;border:1px solid var(--bd);border-radius:10px;background:var(--sf)}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--bd);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{font-family:system-ui,sans-serif;font-size:.8rem;color:var(--mu);font-weight:600}
+td:first-child{font-family:ui-monospace,Consolas,monospace;font-size:.86rem;width:34%;word-break:break-word}
+td:nth-child(3){white-space:nowrap;font-family:system-ui,sans-serif;font-size:.85rem;width:1%}
+.d{color:var(--y)}.p{color:var(--o)}
+.leg{display:flex;gap:16px;font-family:system-ui,sans-serif;font-size:.88rem;margin:10px 0}
+.q{background:var(--sf);border:1px solid var(--bd);border-radius:8px;padding:10px 16px;font-style:italic;margin:0 0 10px}
+.ans{background:var(--sf);border:1px solid var(--bd);border-left:4px solid var(--y);border-radius:10px;padding:8px 20px;margin:0}
+.ans p{margin:12px 0}
+.faq details{background:var(--sf);border:1px solid var(--bd);border-radius:10px;margin:8px 0;padding:0 16px}
+.faq summary{cursor:pointer;padding:12px 0;font-weight:600;list-style-position:outside}
+.faq details[open] summary{border-bottom:1px solid var(--bd);margin-bottom:8px}
+.faq p{margin:8px 0;font-size:.97rem}
+.faq .exp{color:var(--mu);font-family:system-ui,sans-serif;font-size:.88rem}
+.faq .eg{border-left:3px solid var(--ac);padding-left:12px;color:var(--mu);font-size:.92rem}
+.faq .tag{font-family:system-ui,sans-serif;font-size:.7rem;font-weight:500;color:var(--o);border:1px solid var(--bd);border-radius:10px;padding:1px 8px;margin-left:6px;vertical-align:middle}
+.stages .st{background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:12px 16px;margin:12px 0}
+.st h3{margin:0 0 2px;font-size:1.05rem;color:var(--tx);font-family:Georgia,serif}
+.st .num{display:inline-block;min-width:26px;text-align:center;background:var(--ac);color:var(--bg);border-radius:6px;font-family:system-ui,sans-serif;font-size:.82rem;margin-right:8px;padding:0 6px}
+.st .one{margin:2px 0 8px;font-size:.97rem}
+.st dl{margin:0;display:grid;grid-template-columns:150px 1fr;gap:6px 14px;font-size:.92rem}
+.st dt{font-family:system-ui,sans-serif;font-size:.78rem;color:var(--mu);font-weight:600;padding-top:2px}
+.st dd{margin:0}
+.st .mk dt,.st .mk{color:var(--n,#a2594f)}
+@media(max-width:600px){.st dl{grid-template-columns:1fr}.st dt{padding-top:6px}}
+.hide{display:none}
+footer{color:var(--mu);font-size:.88rem;margin-top:30px;font-family:system-ui,sans-serif}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<h1>Production ML Pipeline: Stages and Methods</h1>
+<p class="sub">Every stage of the pipeline in <b>ml_pipeline.py</b>, with the method used at each stage.</p>
+</header>
+<div class="bar">
+<input id="q" type="search" placeholder="Search a method, e.g. SimpleImputer" aria-label="Search methods">
+<button id="th" aria-label="Switch theme">Theme</button>
+</div>
+<div class="leg"><span class="d">● Default in this pipeline</span><span class="p">● Optional or alternative</span></div>
+<div class="flow"><b>Flow:</b> Config → Read → Validate → Clean → Split → Missing values → Outliers → Transform → Encode → Scale → Feature selection → Model → Tuning → Cross-validation → Evaluation → Quality gate → Interpretation → Save → Predict → Serve → Monitor → Retrain (when triggered) → back to Read data → Test</div>
+<nav id="nav"></nav>
+<section id="stages" class="stages">
+<h2>The 12 Stages of a Production ML Pipeline</h2>
+<p class="note">Each stage has the purpose, the methods and tools, what to check, a common mistake, and how it is done in this pipeline.</p>
+<div id="stage-list"></div>
+</section>
+<main id="app"></main>
+<section id="interview">
+<h2>Most Important: How to Explain It in an Interview (2–3 Minutes)</h2>
+<p class="note">If an interviewer asks:</p>
+<div class="q">“Explain your end-to-end machine learning production pipeline.”</div>
+<p class="note">You can give this answer:</p>
+<div class="ans">
+<p>“In my project, I implemented an end-to-end machine learning pipeline following MLOps best practices.</p>
+<p>First, I collected data from databases and external sources using Python and SQL.</p>
+<p>Then I performed data validation to check missing values, duplicates, data types, and data quality.</p>
+<p>After validation, I performed preprocessing, including missing-value imputation, categorical encoding, scaling, outlier handling, and feature engineering.</p>
+<p>Next, I split the dataset into training, validation, and testing datasets. I trained multiple ML algorithms, such as Logistic Regression, Random Forest, and XGBoost, and compared their performance using appropriate evaluation metrics.</p>
+<p>I used MLflow for experiment tracking, where I logged model parameters, metrics, and artifacts. After selecting the best model, I registered it in the MLflow Model Registry with proper versioning.</p>
+<p>For deployment, I created a prediction API using FastAPI, containerized the application using Docker, and deployed it using Kubernetes.</p>
+<p>I also implemented CI/CD using Jenkins or GitHub Actions to automate testing and deployment.</p>
+<p>Finally, I monitored data drift, concept drift, prediction quality, API latency, and system errors using Evidently AI, Prometheus, and Grafana.</p>
+<p>Whenever model performance degrades, we trigger a retraining pipeline, validate the new model, and deploy it only after it passes the required quality checks.</p>
+<p>This makes the complete ML lifecycle automated, reproducible, scalable, and maintainable.”</p>
+</div>
+</section>
+<section id="faq" class="faq">
+<h2>Frequently Asked Production ML Interview Questions</h2>
+<p class="note">Tap a question to open the answer. Each one has what the interviewer expects, a proper answer you can say, and where it applies to this pipeline. Questions tagged Extra are additional ones that are asked often.</p>
+<div id="faq-list"></div>
+</section>
+<footer>Rule for every learning step (imputer, clipper, scaler, encoder, selector, model): fit on train data only, keep it inside one Pipeline, and save it as one file so training and serving behave the same.</footer>
+</div>
+<script>
+// "method|what it does|d or p"
+var D=[
+["Configuration","One place for every setting.",[
+"Config (dataclass)|Columns, ranges, split size, model type, quality gate|d",
+"frozen dataclass|Settings cannot change by accident during a run|d",
+"dataclasses.replace|Override a setting from the command line|d",
+"Environment variable ML_ARTIFACT_DIR|Change the model folder per environment|d"]],
+["Read the data","",[
+"pd.read_parquet|Preferred format, fast and keeps data types|d",
+"pd.read_csv|Fallback for csv files|d",
+"pd.read_sql|Replace the loader with a database query|p"]],
+["Data validation","Automated checks that stop a bad run early.",[
+"Required column check|Fails if a feature or the target column is missing|d",
+"drop_duplicates, dropna(subset=target)|Removes repeated rows and unlabeled rows|d",
+"Binary target check|Target must be only 0 and 1, with both classes present|d",
+"Minimum row count|Stops training on too little data|d",
+"Null ratio check|Fails if a feature has too many missing values|d",
+"Range check (soft)|Warns when more than 1% of rows are outside the expected range|d",
+"DataValidationError|Clear error that the API turns into HTTP 422|d",
+"Great Expectations, Pandera|Heavier validation frameworks|p"]],
+["Data cleaning","Custom transformer that is saved inside the model.",[
+"DataCleaner|Selects columns, fixes types and normalises text in one step|d",
+"pd.to_numeric(errors='coerce')|Text such as N/A in a numeric column becomes missing|d",
+"replace(inf, -inf, NaN)|Infinite values become missing|d",
+"str.strip, str.lower, regex punctuation removal|Normalises category text|d",
+"Empty string to NaN|Blank values count as missing|d"]],
+["Splitting","",[
+"train_test_split(stratify=y)|Keeps the class ratio in train and test|d",
+"Time-based split|Past is train and future is test when a date column is set|d",
+"StratifiedKFold|Cross-validation for classification|d",
+"TimeSeriesSplit|Cross-validation for time data|d",
+"GroupKFold, GroupShuffleSplit|When one customer has many rows|p"]],
+["Missing values","",[
+"SimpleImputer(strategy='median')|Numeric columns, safe with outliers|d",
+"SimpleImputer(strategy='most_frequent')|Categorical columns|d",
+"add_indicator=True|Adds a 'was missing' flag column|d",
+"KNNImputer|Fill from nearest neighbours, slow on big data|p",
+"IterativeImputer (MICE)|Model-based fill, slow and hard to serve|p",
+"Native NaN support in gradient boosting|No imputation needed for tree boosters|p"]],
+["Outliers","",[
+"OutlierClipper (IQR, factor 1.5)|Custom transformer, limits learned on train only|d",
+"np.nanpercentile 25 and 75|Computes the IQR limits|d",
+"np.clip|Caps extreme values and keeps missing values as missing|d",
+"IsolationForest|Detects anomalies as a separate model|p",
+"Z-score, LocalOutlierFactor|Other detection methods|p"]],
+["Transformation","",[
+"FunctionTransformer(log1p)|Reduces skew in columns such as income|d",
+"Safe log (clip at 0 first)|Avoids errors on negative values|d",
+"PowerTransformer (Yeo-Johnson, Box-Cox)|Alternative for skewed data|p",
+"QuantileTransformer|Alternative, makes a uniform or normal shape|p"]],
+["Encoding","",[
+"OneHotEncoder|Turns categories into 0/1 columns|d",
+"handle_unknown='infrequent_if_exist'|Unseen categories do not crash serving|d",
+"min_frequency=0.01|Groups rare categories together|d",
+"TargetEncoder, CountEncoder, HashingEncoder|For high-cardinality columns|p",
+"OrdinalEncoder|For ordered categories|p",
+"LabelEncoder|Target column only, never for input features|p"]],
+["Scaling","Only needed for linear and distance based models.",[
+"StandardScaler|Applied when model type is logistic regression|d",
+"MinMaxScaler, RobustScaler, MaxAbsScaler|Alternatives|p",
+"No scaling for tree models|Gradient boosting and Random Forest do not need it|d"]],
+["Preprocessing structure","",[
+"ColumnTransformer|Different steps for plain numeric, log numeric and categorical columns|d",
+"Pipeline|Chains every step so one fit and one save covers everything|d",
+"remainder='drop'|Ignores any column that is not a declared feature|d",
+"get_feature_names_out|Lists the final feature names after all steps|d"]],
+["Feature selection","",[
+"VarianceThreshold|Drops constant columns|d",
+"SelectFromModel(RandomForestClassifier)|Keeps features above an importance cut-off (0.5 * mean)|d",
+"SelectKBest, chi2, f_classif, mutual_info_classif|Filter alternatives|p",
+"RFE, RFECV|Slow, for training time only|p",
+"Lasso or ElasticNet coefficients|Embedded alternative|p",
+"Boruta|Alternative wrapper method|p"]],
+["Dimension reduction","Not enabled by default.",[
+"PCA|Add after preprocessing if there are very many features|p",
+"IncrementalPCA|Large data|p",
+"TruncatedSVD|Sparse and text features|p",
+"LinearDiscriminantAnalysis|Supervised reduction|p"]],
+["Model","",[
+"HistGradientBoostingClassifier|Default model for tabular data|d",
+"class_weight='balanced'|Handles imbalanced classes without synthetic data|d",
+"early_stopping=True|Stops adding trees when validation score stops improving|d",
+"LogisticRegression|Simple, explainable model|d",
+"XGBoost, LightGBM, CatBoost|Alternative boosters|p",
+"RandomForestClassifier|Baseline, also used inside the selector|d"]],
+["Hyperparameter tuning","Switched on with the tune option.",[
+"RandomizedSearchCV|Samples settings, scored with average_precision|d",
+"Search space|learning rate, leaf nodes, min samples, L2 regularization (or C for logistic regression)|d",
+"Optuna|Bayesian search with pruning|p",
+"GridSearchCV|Only for very small search spaces|p"]],
+["Cross-validation and threshold","",[
+"Out-of-fold predictions|Every training row is predicted by a model that did not see it|d",
+"precision_recall_curve|Candidates for the decision threshold|d",
+"Best F1 threshold|Threshold chosen without touching the test set|d",
+"Cost-based threshold|Use business cost of false positive vs false negative|p",
+"clone(pipeline)|Fresh copy for each fold, no leakage between folds|d"]],
+["Evaluation","Measured once, on the untouched test set.",[
+"roc_auc_score|Ranking quality|d",
+"average_precision_score (PR-AUC)|Main metric for imbalanced data|d",
+"precision, recall, f1|At the chosen threshold|d",
+"brier_score_loss|Quality of the probabilities|d",
+"confusion_matrix|True and false positives and negatives|d",
+"Positive rate|Baseline to compare PR-AUC against|d",
+"CalibratedClassifierCV|Calibration when probabilities must be exact|p"]],
+["Quality gate","",[
+"min_roc_auc|Model is saved but not promoted if test ROC-AUC is below the limit|d",
+"LATEST pointer file|Serving only reads the promoted version|d",
+"--force option|Manual override|p"]],
+["Interpretation","",[
+"permutation_importance|Importance of each raw input column on the test set|d",
+"Selected feature list|Saved in the metadata|d",
+"SHAP, LIME|Per-prediction explanations|p",
+"Partial dependence plots|Effect of one feature|p"]],
+["Saving and versioning","",[
+"joblib.dump(compress=3)|Saves the whole pipeline as one file|d",
+"Timestamp version folder|One folder per training run|d",
+"metadata.json|Metrics, threshold, features, library versions, data hash|d",
+"baseline.json|Training distributions for drift checks|d",
+"ONNX|Cross-language export|p",
+"MLflow, Weights and Biases, DVC|Experiment tracking and data versioning|p"]],
+["Prediction","",[
+"Predictor class|Loads the latest model and validates the input|d",
+"predict_proba|Returns the probability|d",
+"Saved threshold|Turns probability into a 0/1 prediction|d",
+"Batch prediction command|Scores a whole csv or parquet file|d",
+"scikit-learn version check|Warns if serving uses a different library version|d"]],
+["Serving","REST API, optional dependency.",[
+"FastAPI|Web framework|d",
+"Pydantic request model|Validates the request, limits batch size to 1000|d",
+"Lifespan startup load|Model is loaded once, not per request|d",
+"/predict, /health, /model-info|The three endpoints|d",
+"HTTP 422 on bad input|Client errors are not reported as server errors|d",
+"uvicorn|Server process|d",
+"Docker, Kubernetes|Packaging and scaling|p"]],
+["Monitoring","",[
+"PSI (Population Stability Index)|Compares new data with the training distribution|d",
+"Decile bins for numeric columns|Bin edges saved at training time|d",
+"Category proportions with an other bucket|Handles unseen categories|d",
+"Prediction score drift|PSI on the model output|d",
+"Missing rate comparison|Baseline versus new batch|d",
+"OK below 0.10, WARN below 0.25, ALERT above|Status levels, exit code 2 on ALERT|d",
+"KS test, Chi-square|Extra statistical tests|p",
+"Evidently, Prometheus, Grafana|Dashboards and alerting|p",
+"Retraining trigger|Schedule, drift based or performance based|p"]],
+["When to retrain","Retrain when a trigger fires, not only on a calendar. Default means the pipeline already supports it. Optional needs a scheduler or extra tooling.",[
+"Drift trigger: PSI above 0.25 (ALERT)|Input features or prediction scores moved away from training data. The monitor command exits with code 2 so a scheduler can start retraining|d",
+"Drift warning: PSI 0.10 to 0.25 for several runs in a row|Investigate first, retrain if it keeps growing|d",
+"Performance trigger|Real labels arrive and ROC-AUC or PR-AUC drops (for example 5% or more below the saved test score). The most reliable trigger|p",
+"Prediction score shift|Average predicted probability or positive rate changes a lot with no business reason|d",
+"Scheduled retrain|Fixed cadence such as weekly or monthly. Simple safety net for slowly changing data|p",
+"Enough new labeled data|A set number or percentage of new labeled rows has arrived (for example 20% of the training size)|p",
+"Label delay|Churn, fraud or default labels arrive weeks later. Retrain only on rows whose label is final|p",
+"Business or policy change|New product, price change, new region, new customer segment, changed rules|p",
+"Seasonality|Retrain before a known seasonal period (festival, holiday, year end), using last year's same period|p",
+"Schema or feature change|New or removed column, changed meaning of a column, new category in a main field|p",
+"Upstream data fix|A bug in the source data was corrected, so old training rows are wrong|p",
+"Model age limit|Retrain when the model is older than a set number of months even if nothing alarms|p",
+"Alert fatigue guard|Ignore PSI on very small batches (under 200 rows), the value is unreliable|d"]],
+["When NOT to retrain","Retraining on bad data makes the model worse.",[
+"Data quality problem|Nulls, wrong units, broken feed: fix the pipeline, do not retrain on it|d",
+"Validation errors|Missing columns or bad target stop the run by design|d",
+"Short temporary spike|One-off campaign or outage: wait and watch more batches|p",
+"Small batch of new data|Not enough rows for a stable model or a reliable PSI|d",
+"Quality gate failure|If the new model is below the minimum ROC-AUC it is saved but not promoted|d"]],
+["How to retrain safely","",[
+"Expanding window|Train on all history plus new data, stable but slow to adapt|p",
+"Sliding window|Train only on the most recent months, adapts faster to change|p",
+"Time-based split|Test on the newest data so the score reflects the future|d",
+"Champion and challenger|Compare the new model with the live one on the same recent test data and promote only if better|p",
+"Quality gate|Automatic minimum score before a new version can go live|d",
+"Versioned artifacts|Every retrain is a new timestamp folder, old versions are kept|d",
+"LATEST pointer|Serving switches version by changing one pointer file|d",
+"Rollback|Point LATEST back to the previous version if the new one misbehaves|d",
+"Shadow deployment|New model scores live traffic silently, results are only compared|p",
+"Canary or A/B rollout|Send a small share of traffic to the new model first|p",
+"Fine-tune vs full retrain|Fine-tune neural networks on new data, fully retrain tree models|p",
+"Fresh drift baseline|Every retrain saves a new baseline so monitoring compares with the new data|d",
+"Scheduler (Airflow, Dagster, Prefect, cron)|Runs monitor first, then train only when a trigger fires|p",
+"Retrain log|Record why a retrain happened, data hash, old and new scores|d"]],
+["Testing","Built-in selftest command.",[
+"Train and promote check|Model beats the minimum ROC-AUC|d",
+"Artifact check|Files and LATEST pointer exist|d",
+"Prediction round trip|Probabilities between 0 and 1|d",
+"Dirty input check|NaN, text in numeric, unseen category|d",
+"Outlier check|Extreme value does not break the prediction|d",
+"Missing column check|Fails with a clear error|d",
+"Quality gate check|Noise data is not promoted|d",
+"Drift check|Same data OK, shifted data ALERT|d",
+"API check|Health, predict and 422 response|d",
+"pytest|Alternative test runner|p"]]
+];
+var T={d:"Default",p:"Optional"};
+var h="",nv="";
+D.forEach(function(s,i){
+ nv+='<a href="#s'+(i+1)+'">'+(i+1)+' '+s[0]+'</a>';
+ h+='<section id="s'+(i+1)+'"><h2>'+(i+1)+'. '+s[0]+'</h2>'+(s[1]?'<p class="note">'+s[1]+'</p>':'')+
+ '<div class="tb"><table><thead><tr><th>Method</th><th>What it does</th><th>Status</th></tr></thead><tbody>';
+ s[2].forEach(function(r){var p=r.split("|");
+  h+='<tr><td>'+p[0].replace(/</g,"&lt;")+'</td><td>'+p[1]+'</td><td class="'+p[2]+'">● '+T[p[2]]+'</td></tr>';});
+ h+='</tbody></table></div></section>';
+});
+document.getElementById("app").innerHTML=h;
+document.getElementById("nav").innerHTML='<a href="#stages">12 Stages</a>'+nv+'<a href="#interview">Interview answer</a><a href="#faq">Interview Q&amp;A</a>';
+
+
+// [title, one-line, methods and tools, what to check, common mistake, in this pipeline]
+var ST=[
+["Data Ingestion","Collect data from databases, APIs, CSV, S3, Kafka, or data warehouses.",
+"SQL queries and pd.read_sql for databases. pd.read_parquet or read_csv for files. REST APIs with retries and rate-limit handling. S3 with boto3. Kafka consumers for streaming. Warehouses such as Snowflake, BigQuery and Redshift. Airflow, Dagster or Prefect to schedule the load.",
+"Keep an untouched raw copy. Prefer Parquet over CSV. Record the source, extraction time and query. Use incremental loads for big tables. Take a snapshot so the same data can be reloaded later.",
+"Reading straight from a live table whose content keeps changing, so a run cannot be reproduced.",
+"load_data reads Parquet or CSV. For a database, replace it with a SQL query. The data hash is stored with every trained model."],
+["Data Validation","Check schema, data types, missing values, duplicates, invalid records, and data quality.",
+"Required column and schema check. Data type check. Null ratio. Duplicate check. Range check (for example age below 0 is invalid). Allowed category values. Row count and freshness. Target must be valid. Tools: Great Expectations, Pandera, Pydantic, TFDV, Deepchecks.",
+"Hard failures stop the pipeline (missing column, bad target, too few rows). Soft problems are logged as warnings (some values out of range). Run the same checks on live requests, not only at training time.",
+"Validating only at training time, so bad data at serving time silently gives wrong predictions.",
+"Required columns, duplicates, binary target, minimum rows, null ratio and range warnings are checked. DataCleaner converts text such as N/A to missing. A bad request returns HTTP 422."],
+["Data Preprocessing","Handle missing values, categorical encoding, scaling, normalization, and outliers.",
+"Missing values: SimpleImputer (median, mode), missing indicator, KNNImputer. Encoding: OneHotEncoder, OrdinalEncoder, TargetEncoder. Scaling: StandardScaler, MinMaxScaler, RobustScaler. Normalization: L1 or L2 Normalizer. Outliers: IQR clipping, winsorizing, IsolationForest.",
+"Learn every statistic (median, mean, scaler values, category list, clip limits) on training data only. Tree models need no scaling. Handle unseen categories. Use median when outliers are present and mean when they are not.",
+"Fitting the scaler or imputer on the full dataset, which leaks test information into training.",
+"SimpleImputer with a missing flag, OutlierClipper (IQR), OneHotEncoder that ignores unseen categories, StandardScaler only for logistic regression. All are inside one Pipeline."],
+["Feature Engineering","Create meaningful features using domain knowledge and statistical techniques.",
+"Ratios and differences. Group-by aggregates (average per customer). Date parts (month, weekday) and sin/cos cycles. Lag and rolling-window features for time data. Interactions and polynomial features. Binning. Log or power transforms. Text: TF-IDF, embeddings. Feature selection: VarianceThreshold, SelectFromModel, mutual information, SHAP.",
+"Use only information that will be available at prediction time. Compute features the same way in training and serving. Check importance and drop features that add noise. Group-by features are often the strongest for tabular data.",
+"Using future information (for example a column filled in after the outcome), which gives a great test score and a useless live model.",
+"log1p for skewed columns, missing indicators, and feature selection with VarianceThreshold plus SelectFromModel (Random Forest importance). Extra features can be added with a custom transformer."],
+["Data Splitting","Split data into training, validation, and testing datasets.",
+"train_test_split with stratify. StratifiedKFold or KFold for cross-validation. TimeSeriesSplit and time-based splits for dated data. GroupKFold when one customer has many rows. Typical sizes: 60/20/20 or 70/15/15.",
+"Training data fits the model, validation data tunes settings and the threshold, test data is used once at the end. Keep the class ratio equal in every part. For time data, the test set must be the newest period.",
+"Tuning on the test set, or a random split on time data, which lets the model peek at the future.",
+"A stratified train and test split, with cross-validation inside the training part acting as the validation set. The threshold comes from out-of-fold predictions. A time column switches to a time-based split."],
+["Model Training","Train models such as Logistic Regression, Random Forest, XGBoost, etc.",
+"Baseline first: Logistic Regression. Then Random Forest, Gradient Boosting (XGBoost, LightGBM, CatBoost, HistGradientBoosting), SVM, neural networks. Imbalance: class weights, threshold tuning. Regularization: L1, L2, early stopping. Tuning: RandomizedSearchCV, Optuna.",
+"Compare several models on the same split and metric. Keep the simplest model that is good enough. Fix random seeds. Save the full pipeline, not only the estimator.",
+"Training one fancy model with no baseline, so nobody knows whether it actually adds value.",
+"HistGradientBoostingClassifier by default and LogisticRegression as an option, class_weight set to balanced, early stopping, and optional RandomizedSearchCV with the tune switch."],
+["Model Evaluation","Evaluate using Accuracy, Precision, Recall, F1-score, ROC-AUC, RMSE, etc.",
+"Classification: Accuracy, Precision, Recall, F1, ROC-AUC, PR-AUC, Log Loss, confusion matrix, Brier score, calibration. Regression: RMSE, MAE, R2, MAPE. Ranking: NDCG, MAP. Clustering: Silhouette score.",
+"Pick the metric from the business cost. Accuracy misleads on imbalanced data, so use PR-AUC, precision and recall. Compare with a simple baseline (for example the positive rate). Check performance on important segments too.",
+"Reporting accuracy on data where 95% of rows are one class.",
+"Test ROC-AUC, PR-AUC next to the positive-rate baseline, precision, recall, F1, Brier score and confusion matrix, plus permutation importance. A minimum ROC-AUC acts as a quality gate."],
+["Experiment Tracking","Track parameters, metrics, datasets, code versions, and artifacts using MLflow.",
+"MLflow Tracking: log_param, log_metric, log_artifact, log_model, tags and run comparison. Alternatives: Weights and Biases, Neptune, DVC for data versions. Git commit hash for the code version.",
+"Log the parameters, metrics, dataset version or hash, code commit, library versions, plots and the model file for every run, so the best run can be reproduced exactly.",
+"Keeping results in notebook cells or file names such as model_final_v2_new.pkl.",
+"Each run writes a metadata file with metrics, config, data hash, selected features and library versions. MLflow is the optional upgrade when a team runs many experiments."],
+["Model Registry","Store approved model versions and manage their lifecycle.",
+"MLflow Model Registry, SageMaker Model Registry, Vertex AI Model Registry. Versions, stages or aliases (Staging, Production, Archived), approval step, model description and lineage.",
+"Only a version that passed the quality checks and was approved gets promoted. Record who promoted it and why. Keep old versions so a rollback is possible.",
+"Copying a model file by hand to the server with no record of which version is live.",
+"A timestamp folder per version, a quality gate, and a LATEST pointer that serving reads. Moving the pointer promotes or rolls back a version."],
+["Model Deployment","Deploy the model using FastAPI, Docker, Kubernetes, or cloud services.",
+"FastAPI for the REST API with Pydantic validation. Docker for a repeatable environment. Kubernetes for scaling, rolling updates and health checks. Cloud: SageMaker, Vertex AI, Azure ML. Modes: batch, real-time, streaming. Release methods: shadow, canary, A/B test. CI/CD with GitHub Actions or Jenkins.",
+"Load the model once at startup. Add health and model-info endpoints. Limit request size. Return clear errors for bad input. Pin library versions. Test before release and keep rollback ready.",
+"Different library versions in training and serving, so the saved model fails to load or behaves differently.",
+"FastAPI with /predict, /health and /model-info, input validation with HTTP 422 on bad data, a batch predict command, and a version warning if scikit-learn differs."],
+["Monitoring","Monitor latency, errors, prediction quality, data drift, and concept drift.",
+"System: latency, throughput, error rate, CPU and memory with Prometheus and Grafana. Model: data drift with PSI, KS test, Chi-square; prediction score drift; missing rate; real performance once labels arrive; concept drift with DDM or ADWIN. Evidently AI for reports.",
+"Save a baseline from training data. Compare every new batch with it. Set alert levels (PSI below 0.10 OK, up to 0.25 warn, above 0.25 alert). Ignore tiny batches. Send alerts to the team.",
+"Watching only server health, so the API looks fine while the predictions slowly become wrong.",
+"The monitor command calculates PSI for every feature and the prediction score, compares missing rates and exits with code 2 on an alert so a scheduler can react."],
+["Retraining","Retrain the model when performance decreases or new data becomes available.",
+"Triggers: drift alert, performance drop, enough new labeled data, schedule, business or schema change. Windows: expanding or sliding. Release: champion and challenger comparison, shadow, canary, then promote. Orchestration: Airflow, Dagster, Prefect.",
+"Check that the new data is valid first. Train, then evaluate against the current model on the same recent test data. Promote only if it passes the quality gate. Save a new drift baseline. Keep the old version for rollback. Wait for final labels when labels arrive late.",
+"Retraining automatically on corrupted data, which replaces a good model with a worse one.",
+"Rerunning the train command validates, trains, gates and versions a new model with a fresh baseline. See the 'When to retrain' section for the triggers."]
+];
+var sh="";
+ST.forEach(function(x,i){
+ sh+='<div class="st"><h3><span class="num">'+(i+1)+'</span>'+x[0]+'</h3><p class="one">'+x[1]+'</p><dl>'+
+ '<dt>Methods and tools</dt><dd>'+x[2]+'</dd><dt>What to check</dt><dd>'+x[3]+'</dd>'+
+ '<dt>Common mistake</dt><dd>'+x[4]+'</dd><dt>In this pipeline</dt><dd>'+x[5]+'</dd></dl></div>';
+});
+document.getElementById("stage-list").innerHTML=sh;
+// [question, interviewer expects, answer, in this pipeline, extra]
+var F=[
+["What is MLOps?","Automating ML lifecycle",
+"MLOps is applying DevOps practices to machine learning. It automates and connects the whole lifecycle: data collection and validation, training, experiment tracking, deployment, monitoring and retraining. The goal is that a model is reproducible, tested, versioned and safely updated, instead of living in a notebook.",
+"One command trains, validates, gates and versions the model. Another command monitors drift, so the full loop is automated.",0],
+["What is MLflow?","Experiment tracking and model management",
+"MLflow is an open source platform with four parts: Tracking (log parameters, metrics and artifacts for every run), Projects (reproducible runs), Models (a standard packaging format) and the Model Registry (versions and stages such as Staging and Production). It lets me compare runs, reproduce the best one and promote a model with a clear history.",
+"This pipeline saves metrics and parameters in a metadata file per version. MLflow is the optional upgrade when many people run many experiments.",0],
+["What is model versioning?","Managing multiple model versions",
+"Model versioning means every trained model gets a unique version together with the exact code, data, parameters, metrics and library versions that produced it. I can then compare versions, reproduce a result, audit a decision and roll back. Data and code are versioned too (DVC, Git), not only the model file.",
+"Each run saves a timestamp folder with the model, metadata (metrics, threshold, library versions, data hash) and a drift baseline.",0],
+["What is data drift?","Change in input distribution",
+"Data drift is when the distribution of the input features in production changes compared with the training data, for example average income rises or a new customer segment appears. The model may still be correct for the old world but is now seeing inputs it was not trained on. I detect it with PSI, KS test or Chi-square on each feature.",
+"PSI is calculated per feature and on the prediction score: OK below 0.10, WARN below 0.25, ALERT above.",0],
+["What is concept drift?","Change in feature-target relationship",
+"Concept drift is when the relationship between the features and the target changes, even if the inputs look the same. For example, customers with the same profile start churning for a new reason after a competitor launches an offer. It cannot be seen from inputs alone. I detect it by tracking real performance when labels arrive (ROC-AUC, PR-AUC, error rate), or with methods such as DDM and ADWIN.",
+"Prediction score drift is an early warning. Confirming concept drift needs real labels to compare with the saved test metrics.",0],
+["Why Docker?","Consistent deployment environment",
+"Docker packages the code, Python version, libraries and system dependencies into one image, so the model runs the same on my laptop, in testing and in production. It removes the 'works on my machine' problem, makes deployments repeatable and is the base unit for Kubernetes.",
+"A saved model only loads reliably with the same scikit-learn version, which an image pins.",0],
+["Why Kubernetes?","Container orchestration and scaling",
+"Kubernetes runs and manages containers across many machines. It gives auto-scaling when traffic grows, self-healing (restarts failed containers), rolling updates with zero downtime, load balancing, health checks and easy rollback. I use it when a model API needs high availability and variable load. For a small internal service, plain Docker or a managed service can be enough.",
+"The API has a /health endpoint that Kubernetes can use for readiness and liveness checks.",0],
+["Why FastAPI?","Exposing model through REST APIs",
+"FastAPI is a fast Python web framework with automatic request validation through Pydantic, automatic OpenAPI documentation, async support and good performance. It lets other systems call the model through a simple REST endpoint. I load the model once at startup, not on every request, and return clear errors for bad input.",
+"Endpoints /predict, /health and /model-info. A bad request returns HTTP 422 instead of a server error.",0],
+["What is CI/CD?","Automated testing and deployment",
+"CI (continuous integration) automatically runs tests, linting and data or model checks on every code change. CD (continuous delivery or deployment) automatically builds the image and releases it through staging to production. For ML it also includes data validation, training checks and a quality gate on model metrics. Tools: GitHub Actions, Jenkins, GitLab CI.",
+"The selftest command is the test step a CI job would run before deployment.",0],
+["What is model monitoring?","Tracking model and system health",
+"Model monitoring is watching the live system after deployment. There are two sides. Model health: data drift, concept drift, prediction distribution, missing values and, when labels arrive, accuracy. System health: latency, throughput, error rate, CPU and memory. Tools: Evidently AI, Prometheus, Grafana. Alerts trigger investigation or retraining.",
+"The monitor command reports PSI and missing rates, and exits with code 2 on an alert so a scheduler can react.",0],
+["What is model rollback?","Returning to a previous stable model",
+"Rollback means quickly switching production back to the last stable model version when the new one performs badly or breaks. It needs old versions kept and a simple switch, such as changing a registry stage or a pointer. A rollback should take minutes, and it is a key reason to version every model.",
+"Serving reads a LATEST pointer. Pointing it to the previous version folder is a rollback.",0],
+["What is feature store?","Centralized feature management",
+"A feature store is a central place to define, compute, store and serve features so training and serving use exactly the same logic. It has an offline store for training (history, point-in-time correct) and an online store for low-latency serving. It prevents training-serving skew and lets teams reuse features. Tools: Feast, Tecton, Databricks Feature Store.",
+"Here the cleaning and feature steps are inside the saved pipeline, which gives the same consistency for a single model.",0],
+["What is Airflow?","Workflow orchestration",
+"Apache Airflow schedules and orchestrates workflows as DAGs (directed acyclic graphs) of tasks. For ML I use it to run ingestion, validation, training, evaluation and deployment in order, with retries, dependencies, alerts and logs. Alternatives: Dagster, Prefect, Kubeflow Pipelines.",
+"Each command (train, monitor) is one task. A DAG would run monitor first and run train only when a trigger fires.",0],
+["What is A/B testing?","Comparing models in production",
+"A/B testing sends a share of live traffic to the new model (B) and the rest to the current one (A) at the same time, then compares real business and model metrics such as conversion, churn saved or error rate. Users are split randomly and the test runs long enough to reach statistical significance. It shows real impact, which offline metrics cannot.",
+"",0],
+["What is canary deployment?","Gradually releasing a new model",
+"A canary deployment releases the new model to a small percentage of traffic first, for example 5%, while watching errors, latency and prediction quality. If it is healthy the share is increased step by step to 100%. If not, traffic returns to the old model. The goal is limiting the damage of a bad release. A/B testing compares business outcomes; a canary mainly checks safety.",
+"",0],
+["What is training-serving skew?","Same processing in training and production",
+"Training-serving skew is when the features seen in production are computed differently from the ones used in training, for example different cleaning code or missing columns. The model then performs worse than its test score. The fix is to put preprocessing and the model in one pipeline object, or use a feature store, and to validate inputs.",
+"Cleaning, imputation, encoding, selection and the model are saved in one file, so serving cannot differ from training.",1],
+["What is data leakage and how do you avoid it?","Fit on train only",
+"Data leakage is when information from outside the training data, such as test rows or future values, influences the model, which gives unrealistically good scores. I avoid it by splitting first, fitting every imputer, scaler, encoder and selector on the training data only inside a Pipeline, using time-based splits for time data and group splits when one customer has many rows.",
+"The threshold is chosen from out-of-fold predictions, and the test set is used once.",1],
+["What is a model registry?","Central store with versions and stages",
+"A model registry is a central catalogue of trained models with versions, metrics, lineage and a stage such as Staging, Production or Archived. It controls who can promote a model and gives deployment a single source of truth. MLflow Model Registry and SageMaker Model Registry are common examples.",
+"The versioned artifact folders and the LATEST pointer play this role in a small setup.",1],
+["What is shadow deployment?","Test on live traffic without risk",
+"In shadow deployment the new model receives a copy of live requests and makes predictions, but its output is not shown to users. I compare its predictions with the current model and with later real labels. It tests latency and behaviour on real data with zero user risk, before a canary or A/B test.",
+"",1],
+["What is a quality gate?","Automatic check before release",
+"A quality gate is an automatic rule that blocks a model from going live unless it passes, for example a minimum ROC-AUC on the test set, no failed data validation and acceptable latency. It stops a worse model from replacing a good one without a human noticing.",
+"If test ROC-AUC is below the limit, the model is saved but the LATEST pointer is not changed.",1],
+["How do you detect drift?","PSI, KS test and baselines",
+"I save the training distribution as a baseline, then compare each new batch with it. PSI (Population Stability Index) is common: below 0.10 is stable, 0.10 to 0.25 needs attention and above 0.25 is a major shift. For numeric columns I also use the KS test, for categorical columns Chi-square. I check the prediction score distribution too, and ignore very small batches because the values are unreliable.",
+"Baseline bins are saved at training time. Unseen categories fall into an 'other' bucket.",1],
+["When do you retrain a model?","Trigger based, not only scheduled",
+"I retrain when a trigger fires: a drift alert, a drop in real performance once labels arrive, enough new labeled data, a business or schema change, or a scheduled interval as a safety net. I do not retrain on bad data, I fix the data pipeline first. The new model must pass the quality gate and beat the current model before it is promoted.",
+"",1],
+["Batch vs real-time inference?","Choose by latency need",
+"Batch inference scores many records on a schedule, for example nightly churn scores, and is cheaper and simpler. Real-time inference answers one request in milliseconds through an API, for example fraud checks at payment. I choose by how fast the decision is needed, and many systems use both.",
+"The same saved model supports a batch predict command and a real-time API.",1],
+["How do you handle imbalanced data in production?","Weights, threshold and the right metric",
+"I use class weights and threshold tuning rather than synthetic data, because oversampling such as SMOTE can distort probabilities. I judge the model with PR-AUC, precision and recall instead of accuracy, and I choose the threshold from business cost. In production I also monitor the positive rate over time.",
+"class_weight is balanced, the main metric is PR-AUC, and the threshold comes from out-of-fold predictions.",1],
+["How do you make an ML pipeline reproducible?","Same inputs give the same model",
+"I fix random seeds, version the code, the data (hash or DVC) and the configuration, pin library versions, keep all steps in one pipeline, log every run and containerize the environment. Then anyone can rebuild the exact model and explain how it was made.",
+"Metadata stores the data hash, config and library versions of each run.",1]
+];
+var fl="";
+F.forEach(function(f){
+ fl+='<details><summary>'+f[0]+(f[4]?'<span class="tag">Extra</span>':'')+'</summary>'+
+ '<p class="exp"><b>Interviewer expects:</b> '+f[1]+'</p><p>'+f[2]+'</p>'+
+ (f[3]?'<p class="eg"><b>In this pipeline:</b> '+f[3]+'</p>':'')+'</details>';
+});
+document.getElementById("faq-list").innerHTML=fl;
+var q=document.getElementById("q");
+q.addEventListener("input",function(){
+ var t=q.value.toLowerCase();
+ document.querySelectorAll("tbody tr").forEach(function(r){r.classList.toggle("hide",!!t&&r.textContent.toLowerCase().indexOf(t)<0);});
+ document.querySelectorAll("#app section").forEach(function(s){s.classList.toggle("hide",!s.querySelector("tbody tr:not(.hide)"));});
+ document.querySelectorAll(".st").forEach(function(d){d.classList.toggle("hide",!!t&&d.textContent.toLowerCase().indexOf(t)<0);});
+ document.querySelectorAll("#faq-list details").forEach(function(d){d.classList.toggle("hide",!!t&&d.textContent.toLowerCase().indexOf(t)<0);});
+});
+document.getElementById("th").addEventListener("click",function(){
+ var r=document.documentElement,d=r.dataset.theme||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");
+ r.dataset.theme=d==="dark"?"light":"dark";});
+</script>
+</body>
+</html>
