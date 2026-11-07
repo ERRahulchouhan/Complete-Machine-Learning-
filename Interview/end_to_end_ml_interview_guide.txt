@@ -1,0 +1,976 @@
+END-TO-END MACHINE LEARNING INTERVIEW PREPARATION Methods, Functions,
+How to Use Them, and Production Workflow
+================================================================
+
+PURPOSE
+
+This guide covers the end-to-end traditional Machine Learning workflow:
+data collection, ingestion, EDA, data quality, cleaning, preprocessing,
+feature engineering, model training, evaluation, tuning, deployment,
+versioning, monitoring, drift, and retraining.
+
+IMPORTANT RULES
+
+1.  Split data before fitting preprocessing steps.
+2.  Fit imputers, encoders, scalers, feature selectors, and
+    transformations on training data only. Use transform() on
+    validation/test/production data.
+3.  Keep preprocessing and the estimator together in one fitted
+    Pipeline.
+4.  Do not use the test set repeatedly for model selection.
+5.  For time-dependent data, use time-based splitting; do not randomly
+    shuffle future and past observations.
+6.  Do not automatically remove outliers. Investigate whether they are
+    errors or valid business cases.
+7.  Evaluate using metrics appropriate to the business problem, not
+    accuracy alone.
+8.  Never load pickle/joblib artifacts from untrusted sources.
+
+  --------------------------------------------------
+  1. BUSINESS UNDERSTANDING AND PROBLEM DEFINITION
+  --------------------------------------------------
+
+What to do: - Understand the business problem and the decision the model
+will support. - Define the target variable, prediction time, population,
+and unit of analysis. - Decide whether the task is classification,
+regression, clustering, forecasting, ranking, or anomaly detection. -
+Define a baseline and business success metric. - Identify latency,
+throughput, privacy, explainability, and cost constraints.
+
+Useful questions: - What exactly are we predicting? - When must the
+prediction be made? - Which features are available at that time? - What
+is the cost of false positives and false negatives? - How will model
+success be measured in business terms?
+
+  ---------------------------------------
+  2. DATA COLLECTION AND DATA INGESTION
+  ---------------------------------------
+
+Common sources: - CSV, Excel, JSON, Parquet files - SQL databases - REST
+APIs - Cloud object storage - Streaming systems such as Kafka
+
+Pandas methods: - pd.read_csv(path): read CSV. - pd.read_excel(path):
+read Excel. - pd.read_json(path): read JSON. - pd.read_parquet(path):
+read Parquet. - pd.read_sql(query, connection): read SQL query
+results. - pd.to_datetime(series): parse dates. - df.to_csv(path,
+index=False): write CSV. - df.to_parquet(path, index=False): write
+Parquet.
+
+Example: import pandas as pd
+
+    df = pd.read_csv("data.csv")
+    df["created_at"] = pd.to_datetime(df["created_at"],
+                                      errors="coerce")
+
+Production considerations: - Validate source schema and file format. -
+Record source, ingestion time, row count, and data version. - Make
+ingestion idempotent where possible. - Handle retries, partial failures,
+duplicate deliveries, and late data. - Keep raw data immutable; write
+cleaned data to a separate location.
+
+  ------------------------------------
+  3. EXPLORATORY DATA ANALYSIS (EDA)
+  ------------------------------------
+
+3.1 Initial inspection - df.head(n): first rows. - df.tail(n): last
+rows. - df.sample(n): random sample. - df.shape: number of rows and
+columns. - df.size: total number of cells. - len(df): number of rows. -
+df.info(): data types and non-null counts. - df.describe(): numerical
+summary. - df.describe(include=“all”): summary of all columns. -
+df.dtypes: column data types. - df.columns: column names. -
+df.nunique(): number of distinct values per column. -
+df.memory_usage(deep=True): memory usage.
+
+3.2 Numerical analysis - df[“col”].mean(): mean. - df[“col”].median():
+median. - df[“col”].mode(): mode. - df[“col”].std(): standard
+deviation. - df[“col”].var(): variance. - df[“col”].min() / max():
+minimum and maximum. - df[“col”].quantile([0.25, 0.5, 0.75]):
+quartiles. - df.corr(numeric_only=True): correlation matrix.
+
+3.3 Categorical analysis - df[“col”].value_counts(): category counts. -
+df[“col”].value_counts(normalize=True): category proportions. -
+df[“col”].unique(): unique values. -
+df.groupby(“category”)[“target”].mean(): grouped target mean. -
+df.groupby(“category”).agg({“target”: [“mean”, “count”]}): aggregation.
+
+3.4 Visual analysis - df[“col”].hist(): histogram. -
+df.boxplot(column=“col”): box plot. - df.plot(kind=“scatter”, x=“x”,
+y=“y”): scatter plot. - df[“category”].value_counts().plot(kind=“bar”):
+category counts. - pandas plotting uses Matplotlib under the hood.
+
+What to investigate: - Target distribution and class imbalance. -
+Numerical distributions, skewness, and extreme values. - Category
+frequencies and rare categories. - Correlations and possible
+multicollinearity. - Relationships between features and target. - Time
+trends, seasonality, and missingness patterns. - Duplicate records and
+suspicious identifiers.
+
+  ---------------------------------------
+  4. DATA QUALITY CHECKS AND VALIDATION
+  ---------------------------------------
+
+Pandas checks: - df.isna().sum(): missing values per column. -
+df.isna().mean() * 100: missing percentage. - df.duplicated().sum():
+duplicate row count. - df[“id”].duplicated().sum(): duplicate identifier
+count. - df[“col”].isin(valid_values): allowed-value check. -
+df[“col”].between(low, high): range check. - df[“col”].notna(): non-null
+check. - df.select_dtypes(include=“number”): numerical columns. -
+df.select_dtypes(include=“object”): object columns.
+
+Example: assert df[“age”].between(18, 100).all() assert (df[“salary”] >=
+0).all() assert df[“customer_id”].notna().all()
+
+Schema validation: - Pandera: DataFrameSchema, Column, Check,
+schema.validate(). - Great Expectations: expectations, expectation
+suites, checkpoints, validation results, and Data Docs.
+
+Use validation to reject or quarantine invalid incoming data before
+training or inference. Define whether each failure should stop the
+pipeline, warn, or route records to a quarantine area.
+
+  ------------------
+  5. DATA CLEANING
+  ------------------
+
+5.1 Missing values - df.isna(), df.isnull(): detect missing values. -
+df.dropna(): remove rows/columns with missing values. -
+df.fillna(value): fill with a fixed value. -
+SimpleImputer(strategy=“mean”): mean imputation. -
+SimpleImputer(strategy=“median”): median imputation. -
+SimpleImputer(strategy=“most_frequent”): mode imputation. -
+SimpleImputer(strategy=“constant”, fill_value=…): constant imputation. -
+KNNImputer(n_neighbors=5): impute using nearest neighbors. -
+IterativeImputer(): estimate missing values from other features.
+
+Example: from sklearn.impute import SimpleImputer
+
+    imputer = SimpleImputer(strategy="median")
+    X_train_num = imputer.fit_transform(X_train_num)
+    X_test_num = imputer.transform(X_test_num)
+
+Use median for skewed numerical features as a common robust baseline.
+Use most_frequent for categorical features. Consider adding missingness
+indicators when the fact that a value is missing may itself be
+informative.
+
+5.2 Duplicates and inconsistent values - df.drop_duplicates(): remove
+duplicate rows. - df.drop_duplicates(subset=[“id”]): deduplicate by
+key. - df.replace(old, new): replace values. - df.rename(columns={…}):
+rename columns. - df.astype(dtype): convert data type. -
+series.str.strip(): remove surrounding whitespace. - series.str.lower():
+lowercase text. - series.str.replace(…): replace text patterns.
+
+5.3 Outlier detection IQR: q1 = df[“value”].quantile(0.25) q3 =
+df[“value”].quantile(0.75) iqr = q3 - q1 lower = q1 - 1.5 * iqr upper =
+q3 + 1.5 * iqr outliers = df[(df[“value”] < lower) | (df[“value”] >
+upper)]
+
+Clipping: df[“value”] = df[“value”].clip(lower, upper)
+
+Other methods: - scipy.stats.zscore(): standardized distance from
+mean. - IsolationForest(contamination=…): multivariate anomaly
+detection. - LocalOutlierFactor(n_neighbors=…): local density anomaly
+detection. - Winsorization: cap extreme tails using
+scipy.stats.mstats.winsorize.
+
+Use IQR for simple univariate checks, Z-scores when distribution
+assumptions are reasonable, and Isolation Forest/LOF for multivariate
+anomaly detection. Do not remove valid high-value customers or rare but
+legitimate events.
+
+  ----------------------------------------
+  6. TRAIN / VALIDATION / TEST SPLITTING
+  ----------------------------------------
+
+-   train_test_split(X, y, test_size=0.2, random_state=42): random
+    train/test split.
+-   stratify=y: preserve class proportions in classification.
+-   KFold(n_splits=5): K-fold cross-validation.
+-   StratifiedKFold(n_splits=5): preserve class proportions in each
+    fold.
+-   GroupKFold(n_splits=5): keep groups separate across folds.
+-   GroupShuffleSplit(): group-aware random splitting.
+-   TimeSeriesSplit(n_splits=5): time-ordered validation.
+-   cross_val_score(model, X, y, cv=…): evaluate across folds.
+-   cross_validate(…): evaluate multiple metrics.
+-   cross_val_predict(…): out-of-fold predictions.
+
+Example: from sklearn.model_selection import train_test_split
+
+    X = df.drop(columns=["target"])
+    y = df["target"]
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42, stratify=y
+    )
+
+Keep the test set untouched until final evaluation. Use group splitting
+when multiple rows belong to the same customer, patient, device, or
+entity. Use time-based splitting when predicting future outcomes.
+
+  ----------------------------------------
+  7. PREPROCESSING: CATEGORICAL ENCODING
+  ----------------------------------------
+
+-   OneHotEncoder(handle_unknown=“ignore”): create binary columns.
+-   OrdinalEncoder(categories=…): encode ordered categories.
+-   LabelEncoder(): encode target labels; generally not ordinary input
+    columns.
+-   TargetEncoder(): encode categories using target statistics; use
+    within cross-validation/pipelines to avoid leakage.
+-   pd.get_dummies(df): quick pandas one-hot encoding.
+
+Example: from sklearn.preprocessing import OneHotEncoder
+
+    encoder = OneHotEncoder(handle_unknown="ignore")
+    X_train_encoded = encoder.fit_transform(X_train_cat)
+    X_test_encoded = encoder.transform(X_test_cat)
+
+Use one-hot encoding for nominal categories such as city or color. Use
+ordinal encoding only when a meaningful order exists, such as low <
+medium < high. Be careful with high-cardinality columns.
+
+  ----------------------------------------------
+  8. PREPROCESSING: SCALING AND TRANSFORMATION
+  ----------------------------------------------
+
+Scaling: - StandardScaler(): mean 0 and standard deviation 1. -
+MinMaxScaler(): map values to a specified range, commonly 0 to 1. -
+RobustScaler(): use median and interquartile range. - MaxAbsScaler():
+scale by maximum absolute value; useful for sparse data. - Normalizer():
+normalize each sample/vector, not each feature.
+
+Example: from sklearn.preprocessing import StandardScaler
+
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+
+Distribution transformations: - PowerTransformer(method=“yeo-johnson”):
+reduce skewness; supports positive and negative values. -
+PowerTransformer(method=“box-cox”): requires strictly positive values. -
+QuantileTransformer(): map feature distributions using quantiles. -
+FunctionTransformer(): apply a custom function. - np.log1p(x): log(1+x),
+suitable for non-negative values. - KBinsDiscretizer(): convert
+continuous variables into bins.
+
+Scaling is particularly important for Logistic Regression, SVM, KNN,
+PCA, and distance/gradient-based models. Tree-based models usually do
+not require standard scaling.
+
+  ------------------------
+  9. FEATURE ENGINEERING
+  ------------------------
+
+Pandas methods: - assign(): create columns. - map(): map values using a
+dictionary or Series. - apply(): apply a function. - astype(): convert
+types. - pd.cut(): bin values using fixed boundaries. - pd.qcut(): bin
+values by quantiles. - pd.to_datetime(): parse dates. - .dt.year,
+.dt.month, .dt.day, .dt.dayofweek: date components. - str methods:
+extract or normalize text. - groupby().transform(): create group-level
+features without changing row count.
+
+Example: df[“total_amount”] = df[“quantity”] * df[“unit_price”]
+df[“order_date”] = pd.to_datetime(df[“order_date”]) df[“order_month”] =
+df[“order_date”].dt.month df[“age_group”] = pd.cut( df[“age”], bins=[0,
+18, 30, 50, 100], labels=[“child”, “young”, “adult”, “senior”] )
+
+Scikit-learn: - PolynomialFeatures(degree=2): interaction and polynomial
+features. - KBinsDiscretizer(): bin continuous features. -
+FunctionTransformer(): custom feature transformation.
+
+Create features only when they make business sense and are available at
+prediction time. Avoid target leakage and future information.
+
+  ----------------------------------------------------
+  10. FEATURE SELECTION AND DIMENSIONALITY REDUCTION
+  ----------------------------------------------------
+
+Feature selection: - VarianceThreshold(): remove low-variance
+features. - SelectKBest(score_func=…, k=…): select top k features. -
+f_classif: ANOVA F-test for classification. - f_regression: F-test for
+regression. - mutual_info_classif(): mutual information for
+classification. - mutual_info_regression(): mutual information for
+regression. - RFE(estimator, n_features_to_select=…): recursive
+elimination. - RFECV(): RFE with cross-validation. -
+SelectFromModel(estimator): select using model importance. -
+SequentialFeatureSelector(): forward/backward selection.
+
+Example: from sklearn.feature_selection import SelectKBest, f_classif
+
+    selector = SelectKBest(score_func=f_classif, k=5)
+    X_train_selected = selector.fit_transform(X_train, y_train)
+    X_test_selected = selector.transform(X_test)
+
+Dimensionality reduction: - PCA(n_components=…): principal component
+analysis. - TruncatedSVD(): dimensionality reduction, often for sparse
+matrices.
+
+PCA example: from sklearn.decomposition import PCA
+
+    pca = PCA(n_components=0.95)
+    X_train_pca = pca.fit_transform(X_train_scaled)
+    X_test_pca = pca.transform(X_test_scaled)
+
+Fit feature selection and PCA on training data only. PCA generally
+requires features on comparable scales.
+
+  ------------------------------------
+  11. SUPERVISED LEARNING ALGORITHMS
+  ------------------------------------
+
+Common estimator methods: - fit(X, y): train. - predict(X): predict
+labels or numerical values. - predict_proba(X): class probabilities,
+when supported. - score(X, y): estimator’s default score. -
+get_params(): inspect hyperparameters. - set_params(): update
+hyperparameters.
+
+CLASSIFICATION: 1. LogisticRegression() Use: binary/multiclass
+classification and interpretable linear baseline. Key parameters: C,
+penalty, solver, class_weight, max_iter. Example: model =
+LogisticRegression(max_iter=1000) model.fit(X_train, y_train) pred =
+model.predict(X_test)
+
+2.  DecisionTreeClassifier() Use: nonlinear decision rules and
+    interpretable tree structures. Parameters: criterion, max_depth,
+    min_samples_split, min_samples_leaf, max_features.
+
+3.  RandomForestClassifier() Use: bagging ensemble of decision trees;
+    strong tabular baseline. Parameters: n_estimators, max_depth,
+    max_features, min_samples_leaf, class_weight, n_jobs.
+
+4.  GradientBoostingClassifier() Use: sequential boosting of weak
+    learners. Parameters: n_estimators, learning_rate, max_depth,
+    subsample.
+
+5.  AdaBoostClassifier() Use: sequentially emphasize observations that
+    previous learners handled poorly. Parameters: estimator,
+    n_estimators, learning_rate.
+
+6.  XGBClassifier() Use: gradient-boosted trees; strong
+    structured/tabular data model. Parameters: n_estimators,
+    learning_rate, max_depth, subsample, colsample_bytree, reg_alpha,
+    reg_lambda, min_child_weight, gamma, eval_metric.
+
+7.  SVC() Use: maximum-margin classification; scale features first.
+    Parameters: kernel, C, gamma, degree, probability.
+
+8.  KNeighborsClassifier() Use: predict using nearby observations; scale
+    features first. Parameters: n_neighbors, weights, metric, algorithm.
+
+9.  GaussianNB() Use: continuous features with approximately Gaussian
+    class-conditional distributions.
+
+10. MultinomialNB() Use: non-negative count/frequency features, commonly
+    text counts.
+
+11. BernoulliNB() Use: binary features.
+
+REGRESSION: - LinearRegression() - Ridge(alpha=…) - Lasso(alpha=…) -
+ElasticNet(alpha=…, l1_ratio=…) - DecisionTreeRegressor() -
+RandomForestRegressor() - GradientBoostingRegressor() -
+AdaBoostRegressor() - XGBRegressor() - SVR() - KNeighborsRegressor()
+
+Example regression: from sklearn.ensemble import RandomForestRegressor
+
+    model = RandomForestRegressor(
+        n_estimators=200, random_state=42, n_jobs=-1
+    )
+    model.fit(X_train, y_train)
+    predictions = model.predict(X_test)
+
+MODEL CHOICE: - Linear/Logistic Regression: baseline, speed,
+interpretability. - Random Forest: robust nonlinear baseline, less
+feature scaling. - XGBoost: often strong tabular performance; tune
+carefully. - AdaBoost: boosting baseline; can be sensitive to noisy
+observations. - SVM: useful for some medium-sized datasets; scaling is
+important. - KNN: simple distance-based baseline; prediction can be
+expensive. - Naive Bayes: fast probabilistic baseline, especially for
+text. - Do not select a model by reputation. Compare validation
+performance, latency, cost, interpretability, and operational
+constraints.
+
+  ---------------------------
+  12. UNSUPERVISED LEARNING
+  ---------------------------
+
+1.  KMeans(n_clusters=…) Methods: fit(), predict(), fit_predict(),
+    transform(). Use: partition observations into a chosen number of
+    clusters. Scale features where distance is affected by units.
+
+2.  DBSCAN(eps=…, min_samples=…) Method: fit_predict(). Use:
+    density-based clusters and noise detection; no fixed cluster count.
+
+3.  AgglomerativeClustering(n_clusters=…, linkage=…) Method:
+    fit_predict(). Use: hierarchical clustering.
+
+4.  IsolationForest(contamination=…) Method: fit(), predict(),
+    decision_function(). Use: anomaly detection.
+
+5.  PCA() Methods: fit(), transform(), fit_transform(). Use: reduce
+    dimensions and inspect explained variance.
+
+Clustering evaluation: - silhouette_score(X, labels) -
+davies_bouldin_score(X, labels) - calinski_harabasz_score(X, labels)
+
+  ----------------------
+  13. MODEL EVALUATION
+  ----------------------
+
+CLASSIFICATION METRICS: - accuracy_score(y_true, y_pred): fraction
+correct. - precision_score(): positive predictive value. -
+recall_score(): sensitivity. - f1_score(): harmonic mean of precision
+and recall. - confusion_matrix(): true/false positives and negatives. -
+classification_report(): precision, recall, F1, support. -
+roc_auc_score(y_true, y_score): ROC area; use probabilities/scores. -
+roc_curve(): ROC curve points. - precision_recall_curve():
+precision-recall curve. - average_precision_score(): average
+precision. - log_loss(): probability prediction loss. -
+balanced_accuracy_score(): average recall across classes.
+
+Example: from sklearn.metrics import ( accuracy_score, precision_score,
+recall_score, f1_score, confusion_matrix, classification_report )
+
+    pred = model.predict(X_test)
+    print(accuracy_score(y_test, pred))
+    print(precision_score(y_test, pred, average="weighted"))
+    print(recall_score(y_test, pred, average="weighted"))
+    print(f1_score(y_test, pred, average="weighted"))
+    print(confusion_matrix(y_test, pred))
+    print(classification_report(y_test, pred))
+
+For binary ROC-AUC: probabilities = model.predict_proba(X_test)[:, 1]
+auc = roc_auc_score(y_test, probabilities)
+
+REGRESSION METRICS: - mean_absolute_error(): average absolute error. -
+mean_squared_error(): average squared error. -
+root_mean_squared_error(): square root of MSE in recent sklearn. -
+r2_score(): coefficient of determination. -
+mean_absolute_percentage_error(): relative percentage error; problematic
+when actual values are zero or near zero. - mean_squared_log_error():
+log-scale squared error; requires valid non-negative
+targets/predictions.
+
+Example: from sklearn.metrics import ( mean_absolute_error,
+mean_squared_error, r2_score )
+
+    pred = model.predict(X_test)
+    mae = mean_absolute_error(y_test, pred)
+    rmse = mean_squared_error(y_test, pred) ** 0.5
+    r2 = r2_score(y_test, pred)
+
+Metric selection: - False positives costly: prioritize precision. -
+False negatives costly: prioritize recall. - Balance both: F1. -
+Imbalanced classes: inspect PR-AUC, recall, precision, and confusion
+matrix; accuracy alone can mislead. - Regression: choose MAE/RMSE based
+on the cost of large errors.
+
+  ---------------------
+  14. CLASS IMBALANCE
+  ---------------------
+
+Methods: - class_weight=“balanced”: adjust class weights in supported
+estimators. - RandomOverSampler(): duplicate minority observations. -
+RandomUnderSampler(): reduce majority observations. - SMOTE():
+synthesize minority observations. - ADASYN(): adaptive synthetic
+sampling. - SMOTETomek(): combine SMOTE and Tomek-link cleaning.
+
+Example: from imblearn.pipeline import Pipeline from
+imblearn.over_sampling import SMOTE from sklearn.preprocessing import
+StandardScaler from sklearn.linear_model import LogisticRegression
+
+    pipeline = Pipeline([
+        ("scaler", StandardScaler()),
+        ("smote", SMOTE(random_state=42)),
+        ("model", LogisticRegression(max_iter=1000))
+    ])
+    pipeline.fit(X_train, y_train)
+
+Resampling must happen only within training folds. Use
+imblearn.pipeline.Pipeline for cross-validation. Never apply SMOTE to
+the full dataset before splitting.
+
+  ---------------------------
+  15. HYPERPARAMETER TUNING
+  ---------------------------
+
+-   GridSearchCV(estimator, param_grid, cv=…): test every specified
+    combination.
+-   RandomizedSearchCV(estimator, param_distributions, n_iter=…): sample
+    combinations from parameter distributions.
+-   Optuna: create_study(), study.optimize(), trial.suggest_int(),
+    trial.suggest_float(), trial.suggest_categorical(),
+    study.best_params.
+
+Example: from sklearn.model_selection import GridSearchCV from
+sklearn.ensemble import RandomForestClassifier
+
+    params = {
+        "n_estimators": [100, 200],
+        "max_depth": [5, 10, None],
+        "min_samples_split": [2, 5]
+    }
+
+    search = GridSearchCV(
+        RandomForestClassifier(random_state=42),
+        param_grid=params,
+        cv=5,
+        scoring="f1_weighted",
+        n_jobs=-1
+    )
+    search.fit(X_train, y_train)
+    best_model = search.best_estimator_
+    print(search.best_params_)
+    print(search.best_score_)
+
+Tune using training/validation cross-validation, not the final test set.
+Choose scoring based on the business problem.
+
+  ------------------------------------
+  16. PIPELINE AND COLUMNTRANSFORMER
+  ------------------------------------
+
+-   Pipeline(steps): chain preprocessing and estimator.
+-   ColumnTransformer(transformers): apply different transformations to
+    selected columns.
+-   make_pipeline(): create a pipeline with automatically named steps.
+-   make_column_transformer(): convenience constructor.
+
+Example: from sklearn.compose import ColumnTransformer from
+sklearn.pipeline import Pipeline from sklearn.impute import
+SimpleImputer from sklearn.preprocessing import StandardScaler,
+OneHotEncoder from sklearn.ensemble import RandomForestClassifier
+
+    numeric_features = ["age", "salary"]
+    categorical_features = ["city", "gender"]
+
+    numeric_pipeline = Pipeline([
+        ("imputer", SimpleImputer(strategy="median")),
+        ("scaler", StandardScaler())
+    ])
+
+    categorical_pipeline = Pipeline([
+        ("imputer", SimpleImputer(strategy="most_frequent")),
+        ("encoder", OneHotEncoder(handle_unknown="ignore"))
+    ])
+
+    preprocessor = ColumnTransformer([
+        ("num", numeric_pipeline, numeric_features),
+        ("cat", categorical_pipeline, categorical_features)
+    ])
+
+    full_pipeline = Pipeline([
+        ("preprocessor", preprocessor),
+        ("model", RandomForestClassifier(random_state=42))
+    ])
+
+    full_pipeline.fit(X_train, y_train)
+    predictions = full_pipeline.predict(X_test)
+
+Use the same saved fitted pipeline for production inference. This
+prevents training/serving preprocessing differences.
+
+  ------------------
+  17. DATA LEAKAGE
+  ------------------
+
+Types: - Target leakage: feature contains information created after the
+outcome. - Train-test leakage: preprocessing or feature selection fitted
+on all data. - Time leakage: future information used to predict the
+past. - Group leakage: same entity appears in both train and test
+improperly.
+
+Prevention: - Split before fitting preprocessing. - Fit transformations
+only on training data. - Put transformations inside
+Pipeline/ColumnTransformer. - Use group-aware splitting for repeated
+entities. - Use time-based splitting for temporal problems. - Ensure
+every feature is available at the real prediction timestamp.
+
+  -------------------------
+  18. MODEL SERIALIZATION
+  -------------------------
+
+Pickle: - pickle.dump(model, file): save. - pickle.load(file): load.
+
+Joblib: - joblib.dump(model, path): save. - joblib.load(path): load.
+
+Example: import joblib
+
+    joblib.dump(full_pipeline, "model.joblib")
+    loaded_pipeline = joblib.load("model.joblib")
+    predictions = loaded_pipeline.predict(new_data)
+
+Save the complete preprocessing-plus-model pipeline. Record Python,
+Scikit-learn, XGBoost, and other dependency versions. Only load
+artifacts from trusted sources because pickle/joblib loading can execute
+code.
+
+  ----------------------------------------------------
+  19. MLFLOW: EXPERIMENT TRACKING AND MODEL REGISTRY
+  ----------------------------------------------------
+
+Important methods: - mlflow.set_tracking_uri(uri) -
+mlflow.set_experiment(name) - mlflow.start_run() - mlflow.log_param(key,
+value) - mlflow.log_params(dict) - mlflow.log_metric(key, value) -
+mlflow.log_metrics(dict) - mlflow.log_artifact(path) -
+mlflow.sklearn.log_model(model, name=…) -
+mlflow.register_model(model_uri, name) -
+mlflow.pyfunc.load_model(model_uri)
+
+Example: import mlflow import mlflow.sklearn from sklearn.ensemble
+import RandomForestClassifier from sklearn.metrics import f1_score
+
+    mlflow.set_tracking_uri("http://localhost:5000")
+    mlflow.set_experiment("customer_churn")
+
+    with mlflow.start_run():
+        model = RandomForestClassifier(
+            n_estimators=200, random_state=42
+        )
+        model.fit(X_train, y_train)
+        pred = model.predict(X_test)
+        score = f1_score(y_test, pred, average="weighted")
+
+        mlflow.log_param("n_estimators", 200)
+        mlflow.log_metric("f1_weighted", score)
+        mlflow.sklearn.log_model(model, name="model")
+
+Start local server: mlflow server –host 127.0.0.1 –port 5000
+
+MLflow supports experiment tracking, metrics, parameters, artifacts,
+model packaging, and model registry/version management. In production,
+configure authentication, artifact storage, access control, and backups.
+
+  ---------------------------------------
+  20. DVC: DATA AND PIPELINE VERSIONING
+  ---------------------------------------
+
+Commands: - dvc init: initialize DVC. - dvc add data/train.csv: track a
+data file. - dvc remote add -d storage : configure remote storage. - dvc
+push: upload tracked data/artifacts. - dvc pull: download tracked
+data/artifacts. - dvc status: check changes. - dvc repro: reproduce a
+pipeline. - dvc dag: visualize pipeline dependencies.
+
+Typical use: dvc init dvc add data/train.csv git add data/train.csv.dvc
+.gitignore git commit -m “Track training data” dvc push
+
+Use Git for code and DVC for large data/model artifacts and reproducible
+data pipelines. Configure remote storage such as S3 or another supported
+object store.
+
+  ----------------------------
+  21. FASTAPI: MODEL SERVING
+  ----------------------------
+
+Important components: - FastAPI(): create application. - @app.get(): GET
+endpoint. - @app.post(): POST endpoint. - Pydantic BaseModel: validate
+request schema. - HTTPException: return controlled API errors. -
+model.predict(): make predictions. - model.predict_proba(): return
+probabilities when supported. - uvicorn: ASGI server.
+
+Example: from fastapi import FastAPI from pydantic import BaseModel
+import joblib import pandas as pd
+
+    app = FastAPI()
+    model = joblib.load("model.joblib")
+
+    class Customer(BaseModel):
+        age: int
+        salary: float
+        city: str
+        gender: str
+
+    @app.get("/health")
+    def health():
+        return {"status": "ok"}
+
+    @app.post("/predict")
+    def predict(data: Customer):
+        row = pd.DataFrame([data.model_dump()])
+        prediction = model.predict(row)
+        return {"prediction": prediction.tolist()}
+
+Run: uvicorn app:app –host 0.0.0.0 –port 8000
+
+Swagger documentation: http://127.0.0.1:8000/docs
+
+Production additions: - Authentication and authorization. - Request size
+limits and rate limiting. - Structured logs and request IDs. - Input
+schema and business-rule validation. - Readiness/liveness health
+checks. - Timeouts, retries where appropriate, and error handling. -
+Model loading at application startup rather than per request.
+
+  -----------------------------------
+  22. BATCH AND REAL-TIME INFERENCE
+  -----------------------------------
+
+Batch inference: - Process many records periodically. - Use
+pandas.read_csv(chunksize=…). - Use model.predict(batch). - Write output
+to a database or object store. - Orchestrate with Airflow, scheduled
+jobs, or a workflow engine.
+
+Real-time inference: - Receive a request through an API. - Validate
+input. - Apply the fitted preprocessing pipeline. - Run model
+prediction. - Return result and log metadata.
+
+Architecture: Client -> API Gateway/Load Balancer -> FastAPI ->
+Preprocessing + Model -> Response
+
+Operational concepts: - Throughput: requests handled per unit time. -
+Latency: time to produce a response. - Horizontal scaling: add
+replicas. - Vertical scaling: increase CPU/RAM. - Caching: reuse
+eligible previous results. - Queue: process asynchronous work. - Rate
+limiting: protect service capacity.
+
+  ---------------------------------------
+  23. DOCKER: PACKAGE THE MODEL SERVICE
+  ---------------------------------------
+
+Commands: - docker build -t image:tag . - docker images - docker run -p
+host:container image:tag - docker ps - docker stop container - docker
+logs container - docker exec -it container sh - docker pull image:tag -
+docker push image:tag - docker compose up -d
+
+Example Dockerfile: FROM python:3.12-slim WORKDIR /app COPY
+requirements.txt . RUN pip install –no-cache-dir -r requirements.txt
+COPY . . EXPOSE 8000 CMD [“uvicorn”, “app:app”, “–host”, “0.0.0.0”,
+“–port”, “8000”]
+
+Build and run: docker build -t churn-api:v1 . docker run -d -p 8000:8000
+–name churn-api churn-api:v1
+
+Production practices: - Pin dependencies. - Use trusted, maintained base
+images. - Run as a non-root user. - Do not bake secrets into images. -
+Scan images for vulnerabilities. - Use small images and health checks. -
+Tag images with immutable version identifiers.
+
+Registries: - Docker Hub - AWS ECR - Azure Container Registry - Google
+Artifact Registry
+
+  ----------------------------------------
+  24. KUBERNETES: DEPLOYMENT AND SCALING
+  ----------------------------------------
+
+Core objects: - Pod: smallest deployable unit. - Deployment: manages
+replicas and rolling updates. - Service: stable network access to
+pods. - Ingress: HTTP/HTTPS routing into a cluster. - ConfigMap:
+non-secret configuration. - Secret: sensitive configuration. - HPA:
+horizontal pod autoscaling. - Namespace: resource isolation. -
+PersistentVolume/PersistentVolumeClaim: persistent storage.
+
+Commands: - kubectl get pods - kubectl get deployments - kubectl get
+services - kubectl apply -f deployment.yaml - kubectl describe pod  -
+kubectl logs  - kubectl scale deployment ml-api –replicas=3 - kubectl
+rollout status deployment/ml-api - kubectl rollout history
+deployment/ml-api - kubectl rollout undo deployment/ml-api
+
+Deployment YAML should define: - Container image and tag. - Replicas. -
+Labels and selectors. - Container port. - CPU/memory requests and
+limits. - Readiness and liveness probes. - Environment/configuration
+references.
+
+Use Ingress when external HTTP/HTTPS host/path routing or TLS
+termination is needed. It is not mandatory for every cluster deployment.
+
+  --------------------------------
+  25. CI/CD FOR MACHINE LEARNING
+  --------------------------------
+
+Continuous Integration (CI): 1. Checkout code. 2. Install dependencies.
+3. Run formatting/lint checks. 4. Run unit and integration tests. 5.
+Validate data and schemas. 6. Run model tests. 7. Build a Docker image.
+
+Continuous Delivery/Deployment (CD): 1. Publish versioned
+image/artifact. 2. Deploy to staging. 3. Run smoke and integration
+tests. 4. Evaluate release criteria. 5. Promote to production. 6.
+Monitor and roll back if needed.
+
+GitHub Actions concepts: - on, push, pull_request - jobs, steps, uses,
+run - env, secrets, artifacts
+
+Jenkins concepts: - Jenkinsfile, pipeline, agent, stages, steps, post -
+credentials, build triggers, shared libraries
+
+ML-specific CI/CD checks: - Schema compatibility. - Data validation. -
+Reproducibility. - Model metric thresholds. - Bias/fairness checks where
+appropriate. - Dependency and container security. - Model approval and
+deployment gates.
+
+  ----------------------
+  26. MODEL MONITORING
+  ----------------------
+
+Monitor four major areas:
+
+A. DATA QUALITY - Missing-value rate. - Invalid-value rate. - Schema
+changes. - Duplicate rate. - Category changes. - Input volume.
+
+B. DATA DRIFT The input feature distribution changes between
+reference/training data and recent production data.
+
+Methods/tools: - Evidently Report and DataDriftPreset. -
+scipy.stats.ks_2samp(): two-sample KS test. -
+scipy.stats.wasserstein_distance(): distribution distance. - PSI
+(Population Stability Index). - Compare categorical frequency
+distributions.
+
+C. MODEL QUALITY When actual outcomes become available, monitor: -
+Accuracy, precision, recall, F1, ROC-AUC. - MAE, RMSE, R-squared. -
+Business KPIs. - Prediction distribution and confidence.
+
+D. SERVICE HEALTH - Request volume and throughput. - Latency percentiles
+(p50, p95, p99). - Error rate and status codes. - CPU and memory. -
+Availability and saturation.
+
+Tools: - Prometheus: metrics collection. - Grafana: dashboards and
+alerts. - OpenTelemetry: traces, metrics, logs instrumentation. -
+ELK/OpenSearch: log search. - CloudWatch/Azure Monitor: cloud
+monitoring. - Evidently: data/model monitoring reports.
+
+  -----------------------------------------------
+  27. DATA DRIFT, CONCEPT DRIFT, AND RETRAINING
+  -----------------------------------------------
+
+Data drift: - Input feature distribution changes. - Example: customer
+age distribution changes. - Detect by comparing reference and current
+feature distributions.
+
+Concept drift: - Relationship between inputs and target changes. -
+Example: customer behavior changes so the old relationship between
+features and churn no longer predicts churn accurately. - Usually
+requires actual outcomes/labels to confirm model degradation.
+
+Response workflow: 1. Detect drift or performance degradation. 2. Check
+data quality and pipeline changes. 3. Determine whether drift is
+meaningful. 4. Collect representative, correctly labeled new data. 5.
+Retrain candidate model. 6. Evaluate against the current champion model.
+7. Run validation, bias and business checks. 8. Register a new model
+version. 9. Deploy to staging. 10. Promote safely to production. 11.
+Monitor and retain rollback capability.
+
+Do not automatically retrain on every drift alert. Drift does not always
+mean model quality has degraded.
+
+  ----------------------------------------------
+  28. MODEL REGISTRY, VERSIONING, AND ROLLBACK
+  ----------------------------------------------
+
+Keep track of: - Model version. - Training data version. - Code
+commit. - Feature definitions. - Dependency/environment versions. -
+Parameters and metrics. - Approval status. - Deployment environment. -
+Artifact location.
+
+Champion-Challenger: - Champion: currently approved production model. -
+Challenger: newly trained candidate. - Evaluate both using the same
+appropriate validation data/criteria. - Promote only when acceptance
+criteria are met.
+
+Rollback: - Keep the previous working model and deployment artifact. -
+Use MLflow model versions and immutable Docker image tags. - Use
+Kubernetes rollout history and rollout undo. - Define a rollback trigger
+and test the procedure.
+
+  --------------------------
+  29. MODEL EXPLAINABILITY
+  --------------------------
+
+SHAP: - shap.Explainer(model, background_data) - explainer(X): calculate
+explanations. - shap.plots.bar(…): global feature importance summary. -
+shap.plots.beeswarm(…): distribution of feature impacts. -
+shap.plots.waterfall(…): explain one prediction.
+
+LIME: - LimeTabularExplainer(…) - explain_instance(row, predict_fn) -
+show_in_notebook()
+
+Use explainability to investigate predictions, support debugging, and
+communicate model behavior. Feature importance is not proof of
+causality.
+
+  ---------------------------------------------------
+  30. PRODUCTION PROJECT: CUSTOMER CHURN PREDICTION
+  ---------------------------------------------------
+
+Suggested folder structure:
+
+customer_churn_ml/ data/ raw/ processed/ notebooks/ 01_eda.ipynb
+02_data_validation.ipynb 03_preprocessing.ipynb
+04_feature_engineering.ipynb 05_model_training.ipynb
+06_model_evaluation.ipynb src/ data_ingestion.py data_validation.py
+data_cleaning.py feature_engineering.py train.py evaluate.py predict.py
+models/ tests/ api/ app.py monitoring/ Dockerfile requirements.txt
+dvc.yaml README.md
+
+Implementation sequence: 1. Define churn target and business metric. 2.
+Collect and version raw data. 3. Perform EDA. 4. Validate schema,
+ranges, missing values and duplicates. 5. Clean data. 6. Split
+train/validation/test correctly. 7. Build preprocessing with
+ColumnTransformer. 8. Engineer and select features. 9. Train Logistic
+Regression, Random Forest, XGBoost and AdaBoost. 10. Compare appropriate
+classification metrics. 11. Tune the best candidates. 12. Log
+experiments in MLflow. 13. Track data and pipeline with DVC. 14. Save
+the fitted preprocessing/model pipeline. 15. Expose predictions through
+FastAPI. 16. Package service with Docker. 17. Deploy with Kubernetes if
+scale/operations require it. 18. Add CI/CD tests and deployment gates.
+19. Monitor data quality, drift, model quality and API health. 20.
+Retrain, register, promote or roll back based on evidence.
+
+  -------------------------------------
+  31. INTERVIEW QUESTIONS TO PRACTICE
+  -------------------------------------
+
+1.  Explain an end-to-end production ML pipeline.
+2.  What is the difference between data ingestion and data
+    preprocessing?
+3.  How do you decide between mean, median, KNN, and iterative
+    imputation?
+4.  How do you detect and handle outliers?
+5.  StandardScaler vs MinMaxScaler vs RobustScaler?
+6.  OneHotEncoder vs OrdinalEncoder vs TargetEncoder?
+7.  What is feature leakage? Give a real example.
+8.  Why do we split data before fitting a scaler?
+9.  Random Forest vs XGBoost vs AdaBoost?
+10. Why might XGBoost outperform Random Forest on tabular data?
+11. What is bagging vs boosting?
+12. How do you handle class imbalance?
+13. Why is accuracy misleading for imbalanced data?
+14. Precision vs recall: when do you prioritize each?
+15. What is cross-validation? When do you use StratifiedKFold?
+16. Why use TimeSeriesSplit?
+17. GridSearchCV vs RandomizedSearchCV vs Optuna?
+18. Why use Pipeline and ColumnTransformer?
+19. What does MLflow track?
+20. What problem does DVC solve?
+21. How do you deploy a model using FastAPI?
+22. Batch inference vs real-time inference?
+23. Why package an ML API in Docker?
+24. What are Pod, Deployment, Service, Ingress, and HPA?
+25. What should an ML CI/CD pipeline test?
+26. What is data drift vs concept drift?
+27. How do you monitor model performance when labels arrive late?
+28. When should you retrain a model?
+29. How do you compare a champion and challenger?
+30. How do you roll back a bad model release?
+31. How do you explain one prediction using SHAP or LIME?
+32. How do you ensure reproducibility across training and serving?
+
+  -----------------------------
+  32. RECOMMENDED STUDY ORDER
+  -----------------------------
+
+Priority 1: Python, Pandas, NumPy, EDA, statistics. Priority 2: Data
+quality, cleaning, missing values, outliers. Priority 3: Encoding,
+scaling, transformations, feature engineering. Priority 4: Regression,
+classification, tree and ensemble algorithms. Priority 5: Metrics,
+cross-validation, leakage, imbalance. Priority 6: Pipelines,
+ColumnTransformer, hyperparameter tuning. Priority 7: Model
+serialization, MLflow, DVC. Priority 8: FastAPI, batch/real-time
+inference, Docker. Priority 9: CI/CD, Kubernetes, cloud deployment.
+Priority 10: Monitoring, drift, retraining, registry, rollback,
+explainability.
+
+For every topic, practice: - What is it? - Why is it needed? - When
+should it be used? - Which method/class is used? - What are its
+important parameters? - What can go wrong? - How is it used in
+production? - How would you explain it in an interview?
+
+END OF GUIDE
